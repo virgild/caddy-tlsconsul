@@ -9,25 +9,24 @@ import (
 	"io"
 )
 
-const nonceSize = 24
+const nonceSize = 12
 const valuePrefix = "caddy-tlsconsul"
 
-func generateNonce() (*[nonceSize]byte, error) {
-	nonce := new([nonceSize]byte)
-	_, err := io.ReadFull(rand.Reader, nonce[:])
-	if err != nil {
+func generateNonce() ([]byte, error) {
+	nonce := make([]byte, nonceSize)
+	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
 		return nil, err
 	}
 	return nonce, nil
 }
 
-func (t *tlsConsulStorage) encrypt(byts []byte) ([]byte, error) {
+func (cs *ConsulStorage) encrypt(bytes []byte) ([]byte, error) {
 	// No key? No encrypt
-	if len(t.aesKey) == 0 {
-		return byts, nil
+	if len(cs.aesKey) == 0 {
+		return bytes, nil
 	}
 
-	c, err := aes.NewCipher(t.aesKey)
+	c, err := aes.NewCipher(cs.aesKey)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to create AES cipher: %v", err)
 	}
@@ -42,30 +41,30 @@ func (t *tlsConsulStorage) encrypt(byts []byte) ([]byte, error) {
 		return nil, fmt.Errorf("Unable to generate nonce: %v", err)
 	}
 
-	return gcm.Seal(nil, nonce, byts, nil), nil
+	return gcm.Seal(nil, nonce, bytes, nil), nil
 }
 
-func (t *tlsConsulStorage) toBytes(iface interface{}) ([]byte, error) {
+func (cs *ConsulStorage) toBytes(iface interface{}) ([]byte, error) {
 	// JSON marshal, then encrypt if key is there
-	byts, err := json.Marshal(iface)
+	bytes, err := json.Marshal(iface)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to marshal: %v", err)
 	}
 
 	// Prefix with simple prefix and then encrypt
-	byts = append([]byte(valuePrefix), byts)
-	return t.encrypt(byts)
+	bytes = append([]byte(valuePrefix), bytes...)
+	return cs.encrypt(bytes)
 }
 
-func (t *tlsConsulStorage) decrypt(byts []byte) ([]byte, error) {
+func (cs *ConsulStorage) decrypt(bytes []byte) ([]byte, error) {
 	// No key? No decrypt
-	if len(t.aesKey) == 0 {
-		return byts, nil
+	if len(cs.aesKey) == 0 {
+		return bytes, nil
 	}
-	if len(byts) < aes.BlockSize {
+	if len(bytes) < aes.BlockSize {
 		return nil, fmt.Errorf("Invalid contents")
 	}
-	block, err := aes.NewCipher(t.aesKey)
+	block, err := aes.NewCipher(cs.aesKey)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to create AES cipher: %v", err)
 	}
@@ -76,28 +75,28 @@ func (t *tlsConsulStorage) decrypt(byts []byte) ([]byte, error) {
 	}
 
 	nonce := make([]byte, nonceSize)
-	copy(nonce, byts)
+	copy(nonce, bytes)
 
-	out, err := gcm.Open(nil, nonce, byts[nonceSize:], nil)
+	out, err := gcm.Open(nil, nonce, bytes[nonceSize:], nil)
 	if err != nil {
 		return nil, fmt.Errorf("Decryption failure: %v", err)
 	}
 
-	return out
+	return out, nil
 }
 
-func (t *tlsConsulStorage) fromBytes(byts []byte, iface interface{}) error {
+func (cs *ConsulStorage) fromBytes(bytes []byte, iface interface{}) error {
 	// We have to decrypt if there is an AES key and then JSON unmarshal
-	byts, err := t.decrypt(byts)
+	bytes, err := cs.decrypt(bytes)
 	if err != nil {
 		return err
 	}
 	// Simple sanity check of the beginning of the byte array just to check
-	if len(byts) < len(valuePrefix) || string(byts[:len(valuePrefix)]) != valuePrefix {
+	if len(bytes) < len(valuePrefix) || string(bytes[:len(valuePrefix)]) != valuePrefix {
 		return fmt.Errorf("Invalid data format")
 	}
 	// Now just json unmarshal
-	if err := json.Unmarshal(byts[valuePrefix:], iface); err != nil {
+	if err := json.Unmarshal(bytes[len(valuePrefix):], iface); err != nil {
 		return fmt.Errorf("Unable to unmarshal result: %v", err)
 	}
 	return nil
