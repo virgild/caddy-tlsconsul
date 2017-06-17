@@ -9,16 +9,7 @@ import (
 	"io"
 )
 
-const nonceSize = 12
 const valuePrefix = "caddy-tlsconsul"
-
-func generateNonce() ([]byte, error) {
-	nonce := make([]byte, nonceSize)
-	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-		return nil, err
-	}
-	return nonce, nil
-}
 
 func (cs *ConsulStorage) encrypt(bytes []byte) ([]byte, error) {
 	// No key? No encrypt
@@ -36,12 +27,13 @@ func (cs *ConsulStorage) encrypt(bytes []byte) ([]byte, error) {
 		return nil, fmt.Errorf("Unable to create GCM cipher: %v", err)
 	}
 
-	nonce, err := generateNonce()
+	nonce := make([]byte, gcm.NonceSize())
+	_, err = io.ReadFull(rand.Reader, nonce)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to generate nonce: %v", err)
 	}
 
-	return gcm.Seal(nil, nonce, bytes, nil), nil
+	return gcm.Seal(nonce, nonce, bytes, nil), nil
 }
 
 func (cs *ConsulStorage) toBytes(iface interface{}) ([]byte, error) {
@@ -64,7 +56,8 @@ func (cs *ConsulStorage) decrypt(bytes []byte) ([]byte, error) {
 	if len(bytes) < aes.BlockSize {
 		return nil, fmt.Errorf("Invalid contents")
 	}
-	block, err := aes.NewCipher(cs.aesKey)
+	
+	block, err := aes.NewCipher([]byte(aesKey))
 	if err != nil {
 		return nil, fmt.Errorf("Unable to create AES cipher: %v", err)
 	}
@@ -74,10 +67,7 @@ func (cs *ConsulStorage) decrypt(bytes []byte) ([]byte, error) {
 		return nil, fmt.Errorf("Unable to create GCM cipher: %v", err)
 	}
 
-	nonce := make([]byte, nonceSize)
-	copy(nonce, bytes)
-
-	out, err := gcm.Open(nil, nonce, bytes[nonceSize:], nil)
+	out, err := gcm.Open(nil, bytes[:gcm.NonceSize()], bytes[gcm.NonceSize():], nil)
 	if err != nil {
 		return nil, fmt.Errorf("Decryption failure: %v", err)
 	}
