@@ -5,13 +5,20 @@ import (
 	"net/url"
 	"path"
 
+	"os"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/mholt/caddy/caddytls"
 )
 
 const (
 	DefaultPrefix = "caddytls"
-	DefaultAESKey = "consultls"
+
+	// AES Key needs to be either 16 or 32 bytes
+	DefaultAESKey = "consultls-123456789-caddytls-32"
+
+	EnvNameAESKey = "CADDY_CONSULTLS_AESKEY"
+	EnvNamePrefix = "CADDY_CONSULTLS_PREFIX"
 )
 
 func init() {
@@ -37,18 +44,22 @@ func NewConsulStorage(caURL *url.URL) (caddytls.Storage, error) {
 		locks:        make(map[string]*api.Lock),
 	}
 
+	if aesKey := os.Getenv(EnvNameAESKey); aesKey != "" {
+		cs.aesKey = []byte(aesKey)
+	}
+
+	if prefix := os.Getenv(EnvNamePrefix); prefix != "" {
+		cs.prefix = prefix
+	}
+
 	return cs, nil
 }
 
 type ConsulStorage struct {
-	consulClient *api.Client
-	caHost       string
-	// Amount of time the lock can be held for.
-	// We will default this to 5 minutes (i.e. 300s)
-	prefix         string
-	lockTTLSeconds int
-	// Amount of time we will wait to try to acquire the lock.
-	// Defaults to Consul's default which is 15 seconds.
+	consulClient    *api.Client
+	caHost          string
+	prefix          string
+	lockTTLSeconds  int
 	lockWaitSeconds int
 	aesKey          []byte
 	locks           map[string]*api.Lock
