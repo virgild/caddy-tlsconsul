@@ -15,7 +15,7 @@ const (
 	DefaultPrefix = "caddytls"
 
 	// AES Key needs to be either 16 or 32 bytes
-	DefaultAESKey = "consultls-123456789-caddytls-32"
+	DefaultAESKey = "consultls-1234567890-caddytls-32"
 
 	EnvNameAESKey = "CADDY_CONSULTLS_AESKEY"
 	EnvNamePrefix = "CADDY_CONSULTLS_PREFIX"
@@ -75,6 +75,10 @@ func (cs *ConsulStorage) eventKey() string {
 
 func (cs *ConsulStorage) siteKey(domain string) string {
 	return cs.key(path.Join("sites", domain))
+}
+
+func (cs *ConsulStorage) userKey(email string) string {
+	return cs.key(path.Join("users", email))
 }
 
 func (cs *ConsulStorage) SiteExists(domain string) (bool, error) {
@@ -183,13 +187,34 @@ func (cs *ConsulStorage) Unlock(domain string) error {
 }
 
 func (cs *ConsulStorage) LoadUser(email string) (*caddytls.UserData, error) {
-	panic("no impl")
+	kv, _, err := cs.consulClient.KV().Get(cs.userKey(email), &api.QueryOptions{RequireConsistent: true})
+	if err != nil {
+		return nil, caddytls.ErrNotExist(fmt.Errorf("Unable to obtain user data for %v: %v", email, err))
+	} else if kv == nil {
+		return nil, caddytls.ErrNotExist(fmt.Errorf("not found"))
+	}
+
+	user := new(caddytls.UserData)
+	if err = cs.fromBytes(kv.Value, user); err != nil {
+		return nil, fmt.Errorf("Unable to decode site data for %v: %v", email, err)
+	}
+	return user, nil
 }
 
 func (cs *ConsulStorage) StoreUser(email string, data *caddytls.UserData) error {
-	panic("no impl")
+	kv := &api.KVPair{Key: cs.userKey(email)}
+
+	var err error
+	if kv.Value, err = cs.toBytes(data); err != nil {
+		return fmt.Errorf("Unable to encode user data for %v: %v", email, err)
+	}
+	if _, err = cs.consulClient.KV().Put(kv, nil); err != nil {
+		return fmt.Errorf("Unable to store user data for %v: %v", email, err)
+	}
+
+	return nil
 }
 
 func (cs *ConsulStorage) MostRecentUserEmail() string {
-	panic("no impl")
+	panic("no impl - MostRecentUserEmail")
 }
