@@ -208,6 +208,7 @@ func (cs *ConsulStorage) StoreUser(email string, data *caddytls.UserData) error 
 	if kv.Value, err = cs.toBytes(data); err != nil {
 		return fmt.Errorf("Unable to encode user data for %v: %v", email, err)
 	}
+
 	if _, err = cs.consulClient.KV().Put(kv, nil); err != nil {
 		return fmt.Errorf("Unable to store user data for %v: %v", email, err)
 	}
@@ -219,6 +220,10 @@ func (cs *ConsulStorage) StoreUser(email string, data *caddytls.UserData) error 
 func (cs *ConsulStorage) MostRecentUserEmail() string {
 	kvpairs, _, err := cs.consulClient.KV().List(cs.key("users"), &api.QueryOptions{RequireConsistent: true})
 	if err != nil {
+		return ""
+	}
+
+	if len(kvpairs) == 0 {
 		return ""
 	}
 
