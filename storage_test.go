@@ -2,12 +2,13 @@ package tlsconsul
 
 import (
 	"net/url"
-	"testing"
 	"os"
+	"testing"
+
+	"reflect"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/mholt/caddy/caddytls"
-	"reflect"
 )
 
 var consulClient *api.Client
