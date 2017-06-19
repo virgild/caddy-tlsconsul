@@ -12,12 +12,16 @@ import (
 )
 
 const (
+	// DefaultPrefix defines the default prefix in KV store
 	DefaultPrefix = "caddytls"
 
-	// AES Key needs to be 32 bytes long
+	// DefaultAESKey needs to be 32 bytes long
 	DefaultAESKey = "consultls-1234567890-caddytls-32"
 
+	// EnvNameAESKey defines the env variable name to override AES key
 	EnvNameAESKey = "CADDY_CONSULTLS_AESKEY"
+
+	// EnvNamePrefix defines the env variable name to override KV key prefix
 	EnvNamePrefix = "CADDY_CONSULTLS_PREFIX"
 )
 
