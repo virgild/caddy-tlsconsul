@@ -51,4 +51,4 @@ There are additional ENV variables for this plugin:
 
 You can use a custom version of Caddy with integrated Consul TLS storage using the Dockerfile provided in this repo. Because this Dockerfile uses multi-stage build you need at least Docker 17.05 CE.
 
-
+See https://hub.docker.com/r/pteich/caddy-tlsconsul/
