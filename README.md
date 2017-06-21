@@ -46,3 +46,9 @@ There are additional ENV variables for this plugin:
 
 - `CADDY_CONSULTLS_AESKEY` defines your personal AES key to use when encrypting data. It needs to be 32 characters long.
 - `CADDY_CONSULTLS_PREFIX` defines the prefix for the keys in KV store. Default is `caddytls`
+
+## Run with Docker
+
+You can use a custom version of Caddy with integrated Consul TLS storage using the Dockerfile provided in this repo. Because this Dockerfile uses multi-stage build you need at least Docker 17.05 CE.
+
+
