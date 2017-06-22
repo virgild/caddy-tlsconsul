@@ -13,7 +13,7 @@ All saved data gets encrypted using AES.
 
 ## Installation
 
-You need to compile Caddy by yourself to use this plugin.
+You need to compile Caddy by yourself to use this plugin. Alternativly you can use my Docker image that already includes Consul KV storage, more infos below.
 
 - Set up a working Go installation, see https://golang.org/doc/install
 - Checkout Caddy source code from https://github.com/mholt/caddy
