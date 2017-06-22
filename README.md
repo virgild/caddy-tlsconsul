@@ -9,7 +9,7 @@ cluster or multi machine environment with a centralized storage for auto-generat
 With this plugin it is possible to use multiple Caddy instances with the same HTTPS domain for instance with DNS round-robin.
 
 It works with recent versions of Caddy 0.10.x
-All saved data gets encrypted using AES.
+All data that is saved in KV store is encrypted using AES.
 
 ## Installation
 
