@@ -53,6 +53,7 @@ You can use a custom version of Caddy with integrated Consul TLS storage using t
 
 See https://hub.docker.com/r/pteich/caddy-tlsconsul/
 
+Example for a Docker run command:
 ```bash
-docker run -d -p 80:80 -p 443:443 -v /home/test/Caddyfile:/Caddyfile:ro -v /home/test/config:/.caddy:rw -v /home/test/html:/var/www/html pteich/caddy-tlsconsul -agree -conf=/Caddyfile
+docker run -d -p 80:80 -p 443:443 -e "CONSUL_HTTP_ADDR=my.consul.addr:8500" -v /home/test/Caddyfile:/Caddyfile:ro -v /home/test/config:/.caddy:rw -v /home/test/html:/var/www/html pteich/caddy-tlsconsul -agree -conf=/Caddyfile
 ```
