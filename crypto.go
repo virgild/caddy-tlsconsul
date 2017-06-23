@@ -56,7 +56,7 @@ func (cs *ConsulStorage) decrypt(bytes []byte) ([]byte, error) {
 	if len(bytes) < aes.BlockSize {
 		return nil, fmt.Errorf("Invalid contents")
 	}
-	
+
 	block, err := aes.NewCipher(cs.aesKey)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to create AES cipher: %v", err)

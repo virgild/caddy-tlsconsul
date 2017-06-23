@@ -57,6 +57,14 @@ func getUser() *caddytls.UserData {
 	}
 }
 
+func getSite() *caddytls.SiteData {
+	return &caddytls.SiteData{
+		Cert: []byte("cert"),
+		Key:  []byte("key"),
+		Meta: []byte("meta"),
+	}
+}
+
 func TestMostRecentUserEmail(t *testing.T) {
 	cs := setupConsulEnv(t)
 
@@ -95,6 +103,37 @@ func TestStoreAndLoadUser(t *testing.T) {
 	}
 	if !reflect.DeepEqual(user, defaultUser) {
 		t.Fatalf("Loaded user is not the same like the saved one")
+	}
+
+	cleanupConsulEnv(t)
+}
+
+func TestStoreAndLoadSite(t *testing.T) {
+	cs := setupConsulEnv(t)
+
+	defaultSite := getSite()
+
+	err := cs.StoreSite("tls.test.com", defaultSite)
+	if err != nil {
+		t.Fatalf("Error storing site: %v", err)
+	}
+
+	site, err := cs.LoadSite("tls.test.com")
+	if err != nil {
+		t.Fatalf("Error loading site: %v", err)
+	}
+	if !reflect.DeepEqual(site, defaultSite) {
+		t.Fatalf("Loaded site is not the same like the saved one")
+	}
+
+	err = cs.DeleteSite("tls.test.com")
+	if err != nil {
+		t.Fatalf("Error deleting site: %v", err)
+	}
+
+	site, err = cs.LoadSite("tls.test.com")
+	if site != nil {
+		t.Fatal("Site should be deleted")
 	}
 
 	cleanupConsulEnv(t)
