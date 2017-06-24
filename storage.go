@@ -94,12 +94,11 @@ func (cs *ConsulStorage) SiteExists(domain string) (bool, error) {
 
 // LoadSite loads the site data for a domain from Consul KV
 func (cs *ConsulStorage) LoadSite(domain string) (*caddytls.SiteData, error) {
-	var err caddytls.ErrNotExist
 	kv, _, err := cs.consulClient.KV().Get(cs.siteKey(domain), &api.QueryOptions{RequireConsistent: true})
 	if err != nil {
 		return nil, fmt.Errorf("Unable to obtain site data for %v: %v", domain, err)
 	} else if kv == nil {
-		return nil, err
+		return nil, caddytls.ErrNotExist(err)
 	}
 	ret := new(caddytls.SiteData)
 	if err = cs.fromBytes(kv.Value, ret); err != nil {
@@ -125,9 +124,7 @@ func (cs *ConsulStorage) StoreSite(domain string, data *caddytls.SiteData) error
 
 // DeleteSite deletes site data for a given domain
 func (cs *ConsulStorage) DeleteSite(domain string) error {
-
-	var err caddytls.ErrNotExist
-
+	
 	// In order to delete properly and know whether it took, we must first
 	// get and do a CAS operation because delete is idempotent
 	// (ref: https://github.com/hashicorp/consul/issues/348). This can
@@ -137,7 +134,7 @@ func (cs *ConsulStorage) DeleteSite(domain string) error {
 	if err != nil {
 		return fmt.Errorf("Unable to obtain site data for %v: %v", domain, err)
 	} else if kv == nil {
-		return err
+		return caddytls.ErrNotExist(err)
 	}
 	if success, _, err := cs.consulClient.KV().DeleteCAS(kv, nil); err != nil {
 		return fmt.Errorf("Unable to delete site data for %v: %v", domain, err)
