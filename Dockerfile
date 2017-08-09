@@ -13,7 +13,6 @@ FROM alpine:latest
 MAINTAINER Peter Teich <teich@streamabc.com>
 
 ENV DUMBINIT_VERSION 1.2.0
-ENV CADDY_VERSION 0.10.3
 ENV CADDYPATH /.caddy
 
 RUN set -x \
