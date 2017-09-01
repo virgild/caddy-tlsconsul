@@ -25,7 +25,8 @@ import (
   _ "github.com/pteich/caddy-tlsconsul"
 )
 ```
-- Change dir into `caddy/caddymain` and compile Caddy with `build.bash`
+- [DEPRECATED] ~~Change dir into `caddy/caddymain` and compile Caddy with `build.bash`~~
+- Change dir into `caddy/caddymain` and compile Caddy with `go run build.go`
 
 ## Configuration
 

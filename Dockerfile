@@ -10,12 +10,13 @@ RUN set -x \
     && git clone https://github.com/mholt/caddy.git /go/src/github.com/mholt/caddy \
     && cd /go/src/github.com/mholt/caddy \
     && git checkout tags/v${CADDY_VERSION} \
-    && go get -d github.com/pteich/caddy-tlsconsul
+    && go get -d github.com/pteich/caddy-tlsconsul \
+    && go get -d github.com/caddyserver/buildworker
 
 RUN sed -e "s#// This is where other plugins get plugged in (imported)#_ \"github.com/pteich/caddy-tlsconsul\"#" -i /go/src/github.com/mholt/caddy/caddy/caddymain/run.go
 
 WORKDIR /go/src/github.com/mholt/caddy/caddy
-RUN CGO_ENABLED=0 GOOS=linux bash build.bash
+RUN go run build.go -goos=linux -goarch=amd64
 
 FROM alpine:latest
 LABEL maintainer="peter.teich@gmail.com"
