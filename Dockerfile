@@ -1,8 +1,9 @@
 FROM golang:1.8
 
-MAINTAINER Peter Teich <peter.teich@gmail.com>
+ENV CADDY_VERSION 0.10.7
 
-RUN go get -d github.com/mholt/caddy && go get -d github.com/pteich/caddy-tlsconsul
+RUN go get -d github.com/mholt/caddy && go get -d github.com/pteich/caddy-tlsconsul \
+    && cd /go/src/github.com/mholt/caddy &&  git checkout tags/v${CADDY_VERSION}
 
 RUN sed -e "s#// This is where other plugins get plugged in (imported)#_ \"github.com/pteich/caddy-tlsconsul\"#" -i /go/src/github.com/mholt/caddy/caddy/caddymain/run.go
 
@@ -10,7 +11,8 @@ WORKDIR /go/src/github.com/mholt/caddy/caddy
 RUN CGO_ENABLED=0 GOOS=linux bash build.bash
 
 FROM alpine:latest
-MAINTAINER Peter Teich <teich@streamabc.com>
+LABEL maintainer="peter.teich@gmail.com"
+LABEL description="Caddy with integrated TLS Consul Storage plugin"
 
 ENV DUMBINIT_VERSION 1.2.0
 ENV CADDYPATH /.caddy
