@@ -1,9 +1,16 @@
-FROM golang:1.8
+FROM golang:1.8-alpine
+MAINTAINER Peter Teich <peter.teich@gmail.com>
 
 ENV CADDY_VERSION 0.10.7
 
-RUN go get -d github.com/mholt/caddy && go get -d github.com/pteich/caddy-tlsconsul \
-    && cd /go/src/github.com/mholt/caddy &&  git checkout tags/v${CADDY_VERSION}
+RUN set -x \
+    && apk update && apk add --no-cache --upgrade \
+        openssl git ca-certificates sed bash busybox \
+    && update-ca-certificates \
+    && git clone https://github.com/mholt/caddy.git /go/src/github.com/mholt/caddy \
+    && cd /go/src/github.com/mholt/caddy \
+    && git checkout tags/v${CADDY_VERSION} \
+    && go get -d github.com/pteich/caddy-tlsconsul
 
 RUN sed -e "s#// This is where other plugins get plugged in (imported)#_ \"github.com/pteich/caddy-tlsconsul\"#" -i /go/src/github.com/mholt/caddy/caddy/caddymain/run.go
 
