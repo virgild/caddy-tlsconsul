@@ -1,6 +1,7 @@
 package tlsconsul
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
 	"path"
@@ -98,7 +99,7 @@ func (cs *ConsulStorage) LoadSite(domain string) (*caddytls.SiteData, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Unable to obtain site data for %v: %v", domain, err)
 	} else if kv == nil {
-		return nil, caddytls.ErrNotExist(err)
+		return nil, caddytls.ErrNotExist(errors.New("not found"))
 	}
 	ret := new(caddytls.SiteData)
 	if err = cs.fromBytes(kv.Value, ret); err != nil {
@@ -134,7 +135,7 @@ func (cs *ConsulStorage) DeleteSite(domain string) error {
 	if err != nil {
 		return fmt.Errorf("Unable to obtain site data for %v: %v", domain, err)
 	} else if kv == nil {
-		return caddytls.ErrNotExist(err)
+		return caddytls.ErrNotExist(errors.New("not found"))
 	}
 	if success, _, err := cs.consulClient.KV().DeleteCAS(kv, nil); err != nil {
 		return fmt.Errorf("Unable to delete site data for %v: %v", domain, err)
