@@ -1,7 +1,7 @@
 FROM golang:1.8-alpine
 MAINTAINER Peter Teich <peter.teich@gmail.com>
 
-ENV CADDY_VERSION 0.10.8
+ENV CADDY_VERSION 0.10.9
 
 RUN set -x \
     && apk update && apk add --no-cache --upgrade \
@@ -11,7 +11,7 @@ RUN set -x \
     && cd /go/src/github.com/mholt/caddy \
     && git checkout tags/v${CADDY_VERSION} \
     && go get -d github.com/pteich/caddy-tlsconsul \
-    && go get -d github.com/caddyserver/buildworker
+    && go get -d github.com/caddyserver/builds
 
 RUN sed -e "s#// This is where other plugins get plugged in (imported)#_ \"github.com/pteich/caddy-tlsconsul\"#" -i /go/src/github.com/mholt/caddy/caddy/caddymain/run.go
 
