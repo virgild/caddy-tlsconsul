@@ -1,7 +1,7 @@
-FROM golang:1.8-alpine
+FROM golang:1.9-alpine
 MAINTAINER Peter Teich <peter.teich@gmail.com>
 
-ENV CADDY_VERSION 0.10.10
+ENV CADDY_VERSION 0.10.11
 
 RUN set -x \
     && apk update && apk add --no-cache --upgrade \
