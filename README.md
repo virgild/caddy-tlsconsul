@@ -3,8 +3,9 @@
 [Consul](https://github.com/hashicorp/consul) Storage for [Caddy](https://github.com/mholt/caddy) TLS data. 
 
 Normally, Caddy uses local filesystem to store TLS data when it auto-generates certificates from a CA like Lets Encrypt.
-This plugin enables Caddy to store TLS data like user key and certificates in Consul's KV store. This allows you to use Caddy in a 
-cluster or multi machine environment with a centralized storage for auto-generated certificates. 
+Starting with 0.11.x Caddy can work in cluster environments where TLS storage path is shared across servers. This is a great improvement but you need to take care of mounting a centeralized storage on every server. If you have an already running Consul cluster it can be easier to use it's KV store to save certificates and make them available to all Caddy instances.
+
+This plugin enables Caddy to store TLS data like user key and certificates in Consul's KV store. This allows you to use Caddy in a cluster or multi machine environment with a centralized storage for auto-generated certificates. 
 
 With this plugin it is possible to use multiple Caddy instances with the same HTTPS domain for instance with DNS round-robin.
 
