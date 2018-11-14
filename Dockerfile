@@ -1,7 +1,7 @@
-FROM golang:1.10-alpine
+FROM golang:1.11-alpine
 MAINTAINER Peter Teich <peter.teich@gmail.com>
 
-ENV CADDY_VERSION 0.11.0
+ENV CADDY_VERSION 0.11.1
 
 RUN set -x \
     && apk update && apk add --no-cache --upgrade \
@@ -22,7 +22,7 @@ FROM alpine:latest
 LABEL maintainer="peter.teich@gmail.com"
 LABEL description="Caddy with integrated TLS Consul Storage plugin"
 
-ENV DUMBINIT_VERSION 1.2.0
+ENV DUMBINIT_VERSION 1.2.2
 ENV CADDYPATH /.caddy
 
 RUN set -x \
