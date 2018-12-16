@@ -1,4 +1,4 @@
-package tlsconsul
+package storageconsul
 
 import (
 	"crypto/aes"
@@ -8,8 +8,6 @@ import (
 	"fmt"
 	"io"
 )
-
-const valuePrefix = "caddy-tlsconsul"
 
 func (cs *ConsulStorage) encrypt(bytes []byte) ([]byte, error) {
 	// No key? No encrypt
@@ -44,7 +42,7 @@ func (cs *ConsulStorage) toBytes(iface interface{}) ([]byte, error) {
 	}
 
 	// Prefix with simple prefix and then encrypt
-	bytes = append([]byte(valuePrefix), bytes...)
+	bytes = append([]byte(cs.valuePrefix), bytes...)
 	return cs.encrypt(bytes)
 }
 
@@ -82,11 +80,11 @@ func (cs *ConsulStorage) fromBytes(bytes []byte, iface interface{}) error {
 		return err
 	}
 	// Simple sanity check of the beginning of the byte array just to check
-	if len(bytes) < len(valuePrefix) || string(bytes[:len(valuePrefix)]) != valuePrefix {
+	if len(bytes) < len(cs.valuePrefix) || string(bytes[:len(cs.valuePrefix)]) != cs.valuePrefix {
 		return fmt.Errorf("Invalid data format")
 	}
 	// Now just json unmarshal
-	if err := json.Unmarshal(bytes[len(valuePrefix):], iface); err != nil {
+	if err := json.Unmarshal(bytes[len(cs.valuePrefix):], iface); err != nil {
 		return fmt.Errorf("Unable to unmarshal result: %v", err)
 	}
 	return nil
