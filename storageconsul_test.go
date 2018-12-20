@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"testing"
+	"time"
 )
 
 var consulClient *consul.Client
@@ -132,39 +133,32 @@ func TestConsulStorage_ListNonRecursive(t *testing.T) {
 }
 
 
-func TestConsulStorage_TryLockUnlock(t *testing.T) {
+func TestConsulStorage_LockUnlock(t *testing.T) {
 	cs := setupConsulEnv(t)
 	lockKey := path.Join("acme", "example.com", "sites", "example.com", "lock")
 
-	waiter, err := cs.TryLock(lockKey)
+	err := cs.Lock(lockKey)
 	assert.NoError(t, err)
-	assert.Nil(t, waiter)
 
 	err = cs.Unlock(lockKey)
 	assert.NoError(t, err)
 }
 
-func TestConsulStorage_TryLockLock(t *testing.T) {
+func TestConsulStorage_TwoLocks(t *testing.T) {
 	cs := setupConsulEnv(t)
 	cs2 := setupConsulEnv(t)
 	lockKey := path.Join("acme", "example.com", "sites", "example.com", "lock")
 
-	waiter, err := cs.TryLock(lockKey)
-	assert.NoError(t, err)
-	assert.Nil(t, waiter)
-
-	waiter, err = cs2.TryLock(lockKey)
-	assert.NoError(t, err)
-	assert.NotNil(t, waiter)
-
-	err = cs.Unlock(lockKey)
+	err := cs.Lock(lockKey)
 	assert.NoError(t, err)
 
-	waiter.Wait()
+	go time.AfterFunc(5*time.Second, func() {
+		err = cs.Unlock(lockKey)
+		assert.NoError(t, err)
+	})
 
-	waiter, err = cs2.TryLock(lockKey)
+	err = cs2.Lock(lockKey)
 	assert.NoError(t, err)
-	assert.Nil(t, waiter)
 
 	err = cs2.Unlock(lockKey)
 	assert.NoError(t, err)
