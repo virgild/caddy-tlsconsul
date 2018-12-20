@@ -42,8 +42,8 @@ var dialContext = (&net.Dialer{
 
 // StorageData describes the data that is saved to KV
 type StorageData struct {
-	Value    []byte
-	Modified time.Time
+	Value    []byte    `json:"value"`
+	Modified time.Time `json:"modified"`
 }
 
 // ConsulStorage holds all parameters for the Consul connection
@@ -123,45 +123,41 @@ func (cs *ConsulStorage) prefixKey(key string) string {
 	return path.Join(cs.prefix, key)
 }
 
-// TryLock aquires a lock for the given key or returns a waiter
-func (cs ConsulStorage) TryLock(key string) (certmagic.Waiter, error) {
+// Lock aquires a lock for the given key or blocks until it gets it
+func (cs ConsulStorage) Lock(key string) error {
 
 	// if we already hold the lock, return early
 	if _, exists := cs.locks[key]; exists {
-		return nil, nil
+		return nil
 	}
 
-	lock, err := cs.ConsulClient.LockOpts(&consul.LockOptions{
-		Key:          key,
-		LockTryOnce:  true,
-		LockWaitTime: 1 * time.Second,
-	})
+	// prepare the lock
+	lock, err := cs.ConsulClient.LockKey(key)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	leaderCh, err := lock.Lock(nil)
+	// aquire the lock and return a channel that is closed upon lost
+	lockActive, err := lock.Lock(nil)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	// key is already locked by another client, return a waiter
-	if leaderCh == nil {
-		waiter := &consulStorageWaiter{
-			key:          key,
-			waitDuration: consul.DefaultLockRetryTime,
-			wg:           new(sync.WaitGroup),
-		}
-		return waiter, nil
-	}
+	// auto-unlock and clean list of locks in case of lost
+	go func() {
+		<-lockActive
+		cs.Unlock(key)
+	}()
 
+	// save the lock
 	cs.locks[key] = lock
 
-	return nil, nil
+	return nil
 }
 
 // Unlock releases a specific lock
 func (cs ConsulStorage) Unlock(key string) error {
+	// check if we own it and unlock
 	if lock, exists := cs.locks[key]; exists {
 		err := lock.Unlock()
 		if err != nil {
@@ -173,24 +169,18 @@ func (cs ConsulStorage) Unlock(key string) error {
 	return nil
 }
 
-// UnlockAllObtained releases all locks
-func (cs ConsulStorage) UnlockAllObtained() {
-	for key := range cs.locks {
-		cs.Unlock(key)
-	}
-}
-
 // Store saves encrypted value at key in Consul KV
 func (cs ConsulStorage) Store(key string, value []byte) error {
 
 	kv := &consul.KVPair{Key: cs.prefixKey(key)}
 
-	consulData := StorageData{
+	// prepare the stored data
+	consulData := &StorageData{
 		Value:    value,
 		Modified: time.Now(),
 	}
 
-	encryptedValue, err := cs.toBytes(consulData)
+	encryptedValue, err := cs.EncryptStorageData(consulData)
 	if err != nil {
 		return fmt.Errorf("Unable to encode data for %v: %v", key, err)
 	}
@@ -213,8 +203,7 @@ func (cs ConsulStorage) Load(key string) ([]byte, error) {
 		return nil, certmagic.ErrNotExist(fmt.Errorf("Key %s not exists", key))
 	}
 
-	contents := &StorageData{}
-	err = cs.fromBytes(kv.Value, contents)
+	contents, err := cs.DecryptStorageData(kv.Value)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to decrypt data for %s: %v", key, err)
 	}
@@ -288,7 +277,7 @@ func (cs ConsulStorage) List(prefix string, recursive bool) ([]string, error) {
 
 	keysFound = make([]string, 0)
 	for key := range keysMap {
-		keysFound = append(keysFound, path.Join(prefix,key))
+		keysFound = append(keysFound, path.Join(prefix, key))
 	}
 
 	return keysFound, nil
@@ -299,15 +288,14 @@ func (cs ConsulStorage) Stat(key string) (certmagic.KeyInfo, error) {
 
 	kv, _, err := cs.ConsulClient.KV().Get(cs.prefixKey(key), &consul.QueryOptions{RequireConsistent: true})
 	if err != nil {
-		return certmagic.KeyInfo{}, fmt.Errorf("Unable to obtain data for %s: %v", key, err)
+		return certmagic.KeyInfo{}, fmt.Errorf("unable to obtain data for %s: %v", key, err)
 	} else if kv == nil {
-		return certmagic.KeyInfo{}, certmagic.ErrNotExist(fmt.Errorf("Key %s does not exist", key))
+		return certmagic.KeyInfo{}, certmagic.ErrNotExist(fmt.Errorf("key %s does not exist", key))
 	}
 
-	contents := &StorageData{}
-	err = cs.fromBytes(kv.Value, contents)
+	contents, err := cs.DecryptStorageData(kv.Value)
 	if err != nil {
-		return certmagic.KeyInfo{}, fmt.Errorf("Unable to decrypt data for %s: %v", key, err)
+		return certmagic.KeyInfo{}, fmt.Errorf("unable to decrypt data for %s: %v", key, err)
 	}
 
 	return certmagic.KeyInfo{
