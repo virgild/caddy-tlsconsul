@@ -1,18 +1,23 @@
-# caddy-tlsconsul
+# Caddy Storage Consul K/V
 
-[Consul](https://github.com/hashicorp/consul) Storage for [Caddy](https://github.com/mholt/caddy) TLS data. 
+[Consul K/V](https://github.com/hashicorp/consul) Storage for [Caddy](https://github.com/mholt/caddy) TLS data. 
 
-Normally, Caddy uses local filesystem to store TLS data when it auto-generates certificates from a CA like Lets Encrypt.
-Starting with 0.11.x Caddy can work in cluster environments where TLS storage path is shared across servers. This is a great improvement but you need to take care of mounting a centeralized storage on every server. If you have an already running Consul cluster it can be easier to use it's KV store to save certificates and make them available to all Caddy instances.
+By default Caddy uses local filesystem to store TLS data (generated keys, csr, crt) when it auto-generates certificates from a CA like Lets Encrypt.
+Starting with 0.11.x Caddy can work in cluster environments where TLS storage path is shared across servers. 
+This is a great improvement but you need to take care of mounting a centeralized storage on every server. If you have an already running Consul cluster it can be easier to use it's KV store to save certificates and make them available to all Caddy instances.
 
-This plugin enables Caddy to store TLS data like user key and certificates in Consul's KV store. This allows you to use Caddy in a cluster or multi machine environment with a centralized storage for auto-generated certificates. 
+This plugin enables Caddy to store TLS data like keys and certificates in Consul's K/V store. 
+This allows you to use Caddy in a cluster or multi machine environment and use a centralized storage for auto-generated certificates. 
 
 With this plugin it is possible to use multiple Caddy instances with the same HTTPS domain for instance with DNS round-robin.
-
-It works with recent versions of Caddy 0.10.x
 All data that is saved in KV store is encrypted using AES.
 
-## Installation
+The version of this plugin in master branch is supposed to work with versions of Caddy that use https://github.com/mholt/certmagic and
+its new storage interface (> 0.11.1). 
+
+For older versions of Caddy (0.10.x - 0.11.1) you can use the old_storage_interface branch.
+
+## Installation (subject to change for Caddy >0.11.1)
 
 You need to compile Caddy by yourself to use this plugin. Alternativly you can use my Docker image that already includes Consul KV storage, more infos below.
 
