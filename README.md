@@ -13,7 +13,7 @@ With this plugin it is possible to use multiple Caddy instances with the same HT
 All data that is saved in KV store is encrypted using AES.
 
 The version of this plugin in master branch is supposed to work with versions of Caddy that use https://github.com/mholt/certmagic and
-its new storage interface (> 0.11.1). 
+its new storage interface (> 0.11.1). More at https://github.com/pteich/caddy-tlsconsul/issues/3 
 
 For older versions of Caddy (0.10.x - 0.11.1) you can use the old_storage_interface branch.
 
