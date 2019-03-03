@@ -7,7 +7,7 @@ require (
 	github.com/hashicorp/go-cleanhttp v0.5.0 // indirect
 	github.com/hashicorp/go-rootcerts v1.0.0 // indirect
 	github.com/hashicorp/serf v0.8.2 // indirect
-	github.com/mholt/caddy v0.11.4-0.20190208200621-1867ded14c82
+	github.com/mholt/caddy v0.11.5-0.20190301153505-448edcca8e29
 	github.com/mholt/certmagic v0.0.0-20190204191230-f92e85346d81
 	github.com/mitchellh/mapstructure v1.1.2 // indirect
 	github.com/stretchr/testify v1.3.0
