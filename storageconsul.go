@@ -130,15 +130,15 @@ func (cs ConsulStorage) Lock(key string) error {
 	}
 
 	// prepare the lock
-	lock, err := cs.ConsulClient.LockKey(key)
+	lock, err := cs.ConsulClient.LockKey(cs.prefixKey(key))
 	if err != nil {
-		return err
+		return fmt.Errorf("%s - could not create lock for %s", err.Error(), cs.prefixKey(key))
 	}
 
 	// aquire the lock and return a channel that is closed upon lost
 	lockActive, err := lock.Lock(nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s - could not get lock for %s", err.Error(), cs.prefixKey(key))
 	}
 
 	// auto-unlock and clean list of locks in case of lost
