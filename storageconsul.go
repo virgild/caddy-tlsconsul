@@ -70,8 +70,6 @@ func (csw *consulStorageWaiter) Wait() {
 	csw.wg.Wait()
 }
 
-var constructConsulClusterPlugin caddytls.ClusterPluginConstructor
-
 func init() {
 	caddytls.RegisterClusterPlugin("consul", constructConsulClusterPlugin)
 }
@@ -304,4 +302,8 @@ func (cs ConsulStorage) Stat(key string) (certmagic.KeyInfo, error) {
 		Size:       int64(len(contents.Value)),
 		IsTerminal: false,
 	}, nil
+}
+
+func constructConsulClusterPlugin() (certmagic.Storage, error) {
+	return NewConsulStorage()
 }
