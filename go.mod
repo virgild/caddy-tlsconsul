@@ -1,4 +1,4 @@
-module github.com/pteich/caddy-tlsconsul/storageconsul
+module github.com/pteich/caddy-tlsconsul
 
 require (
 	github.com/flynn/go-shlex v0.0.0-20150515145356-3f9db97f8568 // indirect
