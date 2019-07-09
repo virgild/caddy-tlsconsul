@@ -1,3 +1,5 @@
+// +build consul
+
 package storageconsul
 
 import (
@@ -131,7 +133,6 @@ func TestConsulStorage_ListNonRecursive(t *testing.T) {
 	assert.Len(t, keys, 1)
 	assert.Contains(t, keys, path.Join("acme", "example.com", "sites", "example.com"))
 }
-
 
 func TestConsulStorage_LockUnlock(t *testing.T) {
 	cs := setupConsulEnv(t)
