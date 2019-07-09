@@ -3,19 +3,21 @@ MAINTAINER Peter Teich <peter.teich@gmail.com>
 
 #ENV CADDY_VERSION 0.11.5
 ENV GO111MODULE=on
+ENV GOPROXY=https://proxy.golang.org
 
 RUN set -x \
     && apk update && apk add --no-cache --upgrade \
-        openssl git ca-certificates sed bash busybox
+        openssl git ca-certificates
 
-RUN \
-    git clone https://github.com/mholt/caddy.git /src/caddy \
-    && cd /src/caddy
-
-RUN sed -e "s#// This is where other plugins get plugged in (imported)#_ \"github.com/pteich/caddy-tlsconsul\"#" -i /src/caddy/caddy/caddymain/run.go
-
-WORKDIR /src/caddy/caddy
-RUN go run build.go -goos=linux -goarch=amd64
+RUN cd / && mkdir caddybuild && cd caddybuild && echo $'package main\n\
+import (\n\
+"github.com/caddyserver/caddy/caddy/caddymain"\n\
+_ "github.com/pteich/caddy-tlsconsul"\n\
+)\n\
+func main() {\n\
+caddymain.Run()\n\
+}' > main.go && \
+          go mod init caddy && go get github.com/caddyserver/caddy && go build
 
 FROM alpine:latest
 LABEL maintainer="peter.teich@gmail.com"
@@ -36,7 +38,7 @@ RUN set -x \
     && chmod +x /usr/local/bin/dumb-init \
     && rm -rf /tmp/*
 
-COPY --from=0 /src/caddy/caddy/caddy /bin/caddy
+COPY --from=0 /caddybuild/caddy /bin/caddy
 RUN chmod +x /bin/caddy
 
 ENTRYPOINT ["/usr/local/bin/dumb-init","/bin/caddy"]
