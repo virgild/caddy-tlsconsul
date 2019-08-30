@@ -25,7 +25,7 @@ You enable Consul storage with Caddy by setting the `CADDY_CLUSTERING` environme
 Because this plugin uses the official Consul API client you can use all ENV variables like `CONSUL_HTTP_ADDR` or `CONSUL_HTTP_TOKEN`
 to define your Consul address and token. For more information see https://github.com/hashicorp/consul/blob/master/api/api.go
 
-Without any further configuration a running Consul on 127.0.01:8500 is assumed.
+Without any further configuration a running Consul on 127.0.0.1:8500 is assumed.
 
 There are additional ENV variables for this plugin:
 
