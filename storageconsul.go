@@ -9,9 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/caddyserver/certmagic"
 	consul "github.com/hashicorp/consul/api"
-	"github.com/caddyserver/caddy/caddytls"
-	"github.com/mholt/certmagic"
 )
 
 const (
@@ -48,6 +47,7 @@ type StorageData struct {
 
 // ConsulStorage holds all parameters for the Consul connection
 type ConsulStorage struct {
+	certmagic.Storage
 	ConsulClient *consul.Client
 	prefix       string
 	valuePrefix  string
@@ -68,10 +68,6 @@ func (csw *consulStorageWaiter) Wait() {
 		csw.wg.Done()
 	})
 	csw.wg.Wait()
-}
-
-func init() {
-	caddytls.RegisterClusterPlugin("consul", constructConsulClusterPlugin)
 }
 
 // NewConsulStorage connects to Consul and returns a ConsulStorage
@@ -302,8 +298,4 @@ func (cs ConsulStorage) Stat(key string) (certmagic.KeyInfo, error) {
 		Size:       int64(len(contents.Value)),
 		IsTerminal: false,
 	}, nil
-}
-
-func constructConsulClusterPlugin() (certmagic.Storage, error) {
-	return NewConsulStorage()
 }
