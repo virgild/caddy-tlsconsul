@@ -30,6 +30,6 @@ func (tlsc *TLSConsul) Provision(ctx caddy.Context) error {
 	return nil
 }
 
-func (tlsc TLSConsul) CertMagicStorage() (certmagic.Storage, error) {
+func (tlsc *TLSConsul) CertMagicStorage() (certmagic.Storage, error) {
 	return tlsc.storage, nil
 }
