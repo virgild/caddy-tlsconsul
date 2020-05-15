@@ -10,7 +10,7 @@ type TLSConsul struct {
 }
 
 func init() {
-	caddy.RegisterModule(TLSConsul{})
+	caddy.RegisterModule(&TLSConsul{})
 }
 
 func (TLSConsul) CaddyModule() caddy.ModuleInfo {
