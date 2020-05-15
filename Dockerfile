@@ -1,5 +1,5 @@
 FROM caddy:2.0.0-builder AS builder
-RUN caddy-builder github.com/rgdev/caddy-tlsconsul
+RUN caddy-builder github.com/pteich/caddy-tlsconsul
 
 FROM caddy:2.0.0
 LABEL maintainer="peter.teich@gmail.com"
