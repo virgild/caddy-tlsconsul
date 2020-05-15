@@ -4,7 +4,7 @@ package storageconsul
 
 import (
 	consul "github.com/hashicorp/consul/api"
-	"github.com/mholt/certmagic"
+	"github.com/caddyserver/certmagic"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"path"
