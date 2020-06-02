@@ -1,6 +1,7 @@
 package storageconsul
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"os"
@@ -118,7 +119,7 @@ func (cs *ConsulStorage) prefixKey(key string) string {
 }
 
 // Lock aquires a lock for the given key or blocks until it gets it
-func (cs ConsulStorage) Lock(key string) error {
+func (cs ConsulStorage) Lock(ctx context.Context, key string) error {
 
 	// if we already hold the lock, return early
 	if _, exists := cs.locks[key]; exists {
@@ -132,7 +133,7 @@ func (cs ConsulStorage) Lock(key string) error {
 	}
 
 	// aquire the lock and return a channel that is closed upon lost
-	lockActive, err := lock.Lock(nil)
+	lockActive, err := lock.Lock(ctx.Done())
 	if err != nil {
 		return fmt.Errorf("%s - could not get lock for %s", err.Error(), cs.prefixKey(key))
 	}
