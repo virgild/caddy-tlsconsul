@@ -73,7 +73,6 @@ func (csw *consulStorageWaiter) Wait() {
 
 // NewConsulStorage connects to Consul and returns a ConsulStorage
 func NewConsulStorage() (*ConsulStorage, error) {
-
 	// get the default config
 	consulCfg := consul.DefaultConfig()
 	// set our special dialcontext to prevent default keepalive
@@ -82,10 +81,10 @@ func NewConsulStorage() (*ConsulStorage, error) {
 	// create the Consul API client
 	consulClient, err := consul.NewClient(consulCfg)
 	if err != nil {
-		return nil, fmt.Errorf("unable to create Consul client: %v", err)
+		return nil, fmt.Errorf("unable to create Consul client: %w", err)
 	}
 	if _, err := consulClient.Agent().NodeName(); err != nil {
-		return nil, fmt.Errorf("unable to ping Consul: %v", err)
+		return nil, fmt.Errorf("unable to ping Consul: %w", err)
 	}
 
 	// create ConsulStorage and pre-set values
@@ -129,13 +128,13 @@ func (cs ConsulStorage) Lock(ctx context.Context, key string) error {
 	// prepare the lock
 	lock, err := cs.ConsulClient.LockKey(cs.prefixKey(key))
 	if err != nil {
-		return fmt.Errorf("%s - could not create lock for %s", err.Error(), cs.prefixKey(key))
+		return fmt.Errorf("could not create lock for %s: %w", cs.prefixKey(key), err)
 	}
 
-	// aquire the lock and return a channel that is closed upon lost
+	// acquire the lock and return a channel that is closed upon lost
 	lockActive, err := lock.Lock(ctx.Done())
 	if err != nil {
-		return fmt.Errorf("%s - could not get lock for %s", err.Error(), cs.prefixKey(key))
+		return fmt.Errorf("could not get lock for %s: %w", cs.prefixKey(key), err)
 	}
 
 	// auto-unlock and clean list of locks in case of lost
@@ -153,20 +152,22 @@ func (cs ConsulStorage) Lock(ctx context.Context, key string) error {
 // Unlock releases a specific lock
 func (cs ConsulStorage) Unlock(key string) error {
 	// check if we own it and unlock
-	if lock, exists := cs.locks[key]; exists {
-		err := lock.Unlock()
-		if err != nil {
-			delete(cs.locks, key)
-		} else {
-			return err
-		}
+	lock, exists := cs.locks[key]
+	if !exists {
+		return fmt.Errorf("lock %s not found", key)
 	}
+
+	err := lock.Unlock()
+	if err != nil {
+		return fmt.Errorf("unable to unlock %s: %w", key, err)
+	}
+
+	delete(cs.locks, key)
 	return nil
 }
 
 // Store saves encrypted value at key in Consul KV
 func (cs ConsulStorage) Store(key string, value []byte) error {
-
 	kv := &consul.KVPair{Key: cs.prefixKey(key)}
 
 	// prepare the stored data
@@ -177,13 +178,13 @@ func (cs ConsulStorage) Store(key string, value []byte) error {
 
 	encryptedValue, err := cs.EncryptStorageData(consulData)
 	if err != nil {
-		return fmt.Errorf("unable to encode data for %v: %v", key, err)
+		return fmt.Errorf("unable to encode data for %v: %w", key, err)
 	}
 
 	kv.Value = encryptedValue
 
 	if _, err = cs.ConsulClient.KV().Put(kv, nil); err != nil {
-		return fmt.Errorf("unable to store data for %v: %v", key, err)
+		return fmt.Errorf("unable to store data for %v: %w", key, err)
 	}
 
 	return nil
@@ -193,14 +194,14 @@ func (cs ConsulStorage) Store(key string, value []byte) error {
 func (cs ConsulStorage) Load(key string) ([]byte, error) {
 	kv, _, err := cs.ConsulClient.KV().Get(cs.prefixKey(key), &consul.QueryOptions{RequireConsistent: true})
 	if err != nil {
-		return nil, fmt.Errorf("unable to obtain data for %s: %v", key, err)
+		return nil, fmt.Errorf("unable to obtain data for %s: %w", key, err)
 	} else if kv == nil {
 		return nil, certmagic.ErrNotExist(fmt.Errorf("key %s does not exist", key))
 	}
 
 	contents, err := cs.DecryptStorageData(kv.Value)
 	if err != nil {
-		return nil, fmt.Errorf("unable to decrypt data for %s: %v", key, err)
+		return nil, fmt.Errorf("unable to decrypt data for %s: %w", key, err)
 	}
 
 	return contents.Value, nil
@@ -208,18 +209,17 @@ func (cs ConsulStorage) Load(key string) ([]byte, error) {
 
 // Delete a key
 func (cs ConsulStorage) Delete(key string) error {
-
 	// first obtain existing keypair
 	kv, _, err := cs.ConsulClient.KV().Get(cs.prefixKey(key), &consul.QueryOptions{RequireConsistent: true})
 	if err != nil {
-		return fmt.Errorf("unable to obtain data for %s: %v", key, err)
+		return fmt.Errorf("unable to obtain data for %s: %w", key, err)
 	} else if kv == nil {
 		return certmagic.ErrNotExist(err)
 	}
 
 	// no do a Check-And-Set operation to verify we really deleted the key
 	if success, _, err := cs.ConsulClient.KV().DeleteCAS(kv, nil); err != nil {
-		return fmt.Errorf("unable to delete data for %s: %v", key, err)
+		return fmt.Errorf("unable to delete data for %s: %w", key, err)
 	} else if !success {
 		return fmt.Errorf("failed to lock data delete for %s", key)
 	}
@@ -280,17 +280,16 @@ func (cs ConsulStorage) List(prefix string, recursive bool) ([]string, error) {
 
 // Stat returns statistic data of a key
 func (cs ConsulStorage) Stat(key string) (certmagic.KeyInfo, error) {
-
 	kv, _, err := cs.ConsulClient.KV().Get(cs.prefixKey(key), &consul.QueryOptions{RequireConsistent: true})
 	if err != nil {
-		return certmagic.KeyInfo{}, fmt.Errorf("unable to obtain data for %s: %v", key, err)
+		return certmagic.KeyInfo{}, fmt.Errorf("unable to obtain data for %s: %w", key, err)
 	} else if kv == nil {
 		return certmagic.KeyInfo{}, certmagic.ErrNotExist(fmt.Errorf("key %s does not exist", key))
 	}
 
 	contents, err := cs.DecryptStorageData(kv.Value)
 	if err != nil {
-		return certmagic.KeyInfo{}, fmt.Errorf("unable to decrypt data for %s: %v", key, err)
+		return certmagic.KeyInfo{}, fmt.Errorf("unable to decrypt data for %s: %w", key, err)
 	}
 
 	return certmagic.KeyInfo{
