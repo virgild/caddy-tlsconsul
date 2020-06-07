@@ -20,14 +20,17 @@ The version of this plugin in the master branch supports Caddy 2.0.0+ using Cert
 
 ### Caddy configuration
 
-You need to specify `tlsconsul` as the storage module in Caddy's configuration. This can be done in the config file of using the [admin API](https://caddyserver.com/docs/api).
+ATTENTION: The name of the storage module in configurations has been changed to *consol* to alogn
+with other storage modules.
+
+You need to specify `consul` as the storage module in Caddy's configuration. This can be done in the config file of using the [admin API](https://caddyserver.com/docs/api).
 
 JSON ([reference](https://caddyserver.com/docs/json/))
 ```
 ...
 {
     "storage": {
-        "module": "tlsconsul"
+        "module": "consul"
     }
 }
 ...
@@ -36,8 +39,15 @@ JSON ([reference](https://caddyserver.com/docs/json/))
 Caddyfile ([reference](https://caddyserver.com/docs/caddyfile/options))
 ```
 ...
-{
-    storage tlsconsul {}
+storage consul {
+       address      "127.0.0.1:8500"
+       token        "consul-access-token"
+       timeout      10
+       prefix       "caddytls"
+       value_prefix "myprefix"
+       aes_key      "consultls-1234567890-caddytls-32"
+       tls_enabled  "false"
+       tls_insecure "true"
 }
 ...
 ```
