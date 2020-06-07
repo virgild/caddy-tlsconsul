@@ -10,8 +10,9 @@ _ "github.com/pteich/caddy-tlsconsul"\n\
 func main() {\n\
 caddycmd.Main()\n\
 }' > main.go && \
+          go env -w GOPROXY="https://goproxy.io,direct" && \
           go mod init caddy && go get github.com/caddyserver/caddy/v2@master && go get && \
-          CGO_ENABLED=0 go env -w GOPROXY="https://goproxy.io,direct" go build -trimpath -tags netgo -ldflags '-extldflags "-static" -s -w' -o /usr/bin/caddy
+          CGO_ENABLED=0 go build -trimpath -tags netgo -ldflags '-extldflags "-static" -s -w' -o /usr/bin/caddy
 
 
 FROM caddy:2
