@@ -7,19 +7,17 @@ import (
 )
 
 func TestConsulStorage_EncryptDecryptStorageData(t *testing.T) {
-	cs := &ConsulStorage{
-		aesKey: []byte(DefaultAESKey),
-		valuePrefix: DefaultValuePrefix,
-	}
+	cs := New(WithValuePrefix(DefaultPrefix), WithAESKey(DefaultAESKey))
+
 	testDate := time.Now()
 
 	sd := &StorageData{
-		Value: []byte("crt data"),
+		Value:    []byte("crt data"),
 		Modified: testDate,
 	}
 
 	encryptedData, err := cs.EncryptStorageData(sd)
-	assert.NoError(t,err)
+	assert.NoError(t, err)
 
 	decryptedData, err := cs.DecryptStorageData(encryptedData)
 	assert.NoError(t, err)
