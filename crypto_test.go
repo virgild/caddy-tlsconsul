@@ -7,7 +7,7 @@ import (
 )
 
 func TestConsulStorage_EncryptDecryptStorageData(t *testing.T) {
-	cs := New(WithValuePrefix(DefaultPrefix), WithAESKey(DefaultAESKey))
+	cs := New()
 
 	testDate := time.Now()
 
