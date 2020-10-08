@@ -61,53 +61,53 @@ func (s *Storage) CertMagicStorage() (certmagic.Storage, error) {
 func (s *Storage) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 	for d.Next() {
 		key := d.Val()
-		args := d.RemainingArgs()
+		var value string
 
-		if len(args) == 0 {
+		if !d.Args(&value) {
 			continue
 		}
 
 		switch key {
 		case "address":
-			if args[0] != "" {
-				parsedAddress, err := caddy.ParseNetworkAddress(args[0])
+			if value != "" {
+				parsedAddress, err := caddy.ParseNetworkAddress(value)
 				if err == nil {
 					s.Address = parsedAddress.JoinHostPort(0)
 				}
 			}
 		case "token":
-			if args[0] != "" {
-				s.Token = args[0]
+			if value != "" {
+				s.Token = value
 			}
 		case "timeout":
-			if args[0] != "" {
-				timeParse, err := strconv.Atoi(args[0])
+			if value != "" {
+				timeParse, err := strconv.Atoi(value)
 				if err == nil {
 					s.Timeout = timeParse
 				}
 			}
 		case "prefix":
-			if args[0] != "" {
-				s.Prefix = args[0]
+			if value != "" {
+				s.Prefix = value
 			}
 		case "value_prefix":
-			if args[0] != "" {
-				s.ValuePrefix = args[0]
+			if value != "" {
+				s.ValuePrefix = value
 			}
 		case "aes_key":
-			if args[0] != "" {
-				s.AESKey = []byte(args[0])
+			if value != "" {
+				s.AESKey = []byte(value)
 			}
 		case "tls_enabled":
-			if args[0] != "" {
-				tlsParse, err := strconv.ParseBool(args[0])
+			if value != "" {
+				tlsParse, err := strconv.ParseBool(value)
 				if err == nil {
 					s.TlsEnabled = tlsParse
 				}
 			}
 		case "tls_insecure":
-			if args[0] != "" {
-				tlsInsecureParse, err := strconv.ParseBool(args[0])
+			if value != "" {
+				tlsInsecureParse, err := strconv.ParseBool(value)
 				if err == nil {
 					s.TlsInsecure = tlsInsecureParse
 				}
