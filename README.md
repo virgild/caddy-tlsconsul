@@ -27,29 +27,37 @@ You need to specify `consul` as the storage module in Caddy's configuration. Thi
 
 JSON ([reference](https://caddyserver.com/docs/json/))
 ```
-...
 {
-    "storage": {
-        "module": "consul"
-    }
+  "admin": {
+    "listen": "0.0.0.0:2019"
+  },
+  "storage": {
+    "module": "consul",
+    "address": "localhost:8500",
+    "prefix": "caddytls",
+    "token": "consul-access-token",
+    "aes_key": "consultls-1234567890-caddytls-32"
+  }
 }
-...
 ```
 
 Caddyfile ([reference](https://caddyserver.com/docs/caddyfile/options))
 ```
-...
-storage consul {
-       address      "127.0.0.1:8500"
-       token        "consul-access-token"
-       timeout      10
-       prefix       "caddytls"
-       value_prefix "myprefix"
-       aes_key      "consultls-1234567890-caddytls-32"
-       tls_enabled  "false"
-       tls_insecure "true"
+{
+    storage consul {
+           address      "127.0.0.1:8500"
+           token        "consul-access-token"
+           timeout      10
+           prefix       "caddytls"
+           value_prefix "myprefix"
+           aes_key      "consultls-1234567890-caddytls-32"
+           tls_enabled  "false"
+           tls_insecure "true"
+    }
 }
-...
+
+:443 {
+}
 ```
 
 ### Consul configuration
@@ -63,3 +71,21 @@ There are additional ENV variables for this plugin:
 
 - `CADDY_CLUSTERING_CONSUL_AESKEY` defines your personal AES key to use when encrypting data. It needs to be 32 characters long.
 - `CADDY_CLUSTERING_CONSUL_PREFIX` defines the prefix for the keys in KV store. Default is `caddytls`
+
+### Consul ACL Policy
+
+To access Consul you need a token with a valid ACL policy. Assuming you configured `cadytls` as your K/V path prefix you can use the following settings:
+```
+key_prefix "caddytls" {
+	policy = "write"
+}
+session_prefix "" {
+	policy = "write"
+}
+node_prefix "" {
+	policy = "read"
+}
+agent_prefix "" {
+	policy = "read"
+}
+```
