@@ -2,7 +2,6 @@ package storageconsul
 
 import (
 	"strconv"
-	"time"
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
@@ -25,7 +24,7 @@ func (Storage) CaddyModule() caddy.ModuleInfo {
 // Provision is called by Caddy to prepare the module
 func (s *Storage) Provision(ctx caddy.Context) error {
 	s.logger = ctx.Logger(s).Sugar()
-	s.logger.Infof("TLS storage is using Consul at %s", s.config.ConsulAddr)
+	s.logger.Infof("TLS storage is using Consul at %s", s.Address)
 	return s.createConsulClient()
 }
 
@@ -46,56 +45,58 @@ func (s *Storage) CertMagicStorage() (certmagic.Storage, error) {
 // }
 func (s *Storage) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 	for d.Next() {
+		key := d.Val()
 		args := d.RemainingArgs()
-		if len(args) > 1 {
-			switch args[0] {
-			case "address":
-				if args[1] != "" {
-					parsedAddress, err := caddy.ParseNetworkAddress(args[1])
-					if err == nil {
-						WithConsulAddr(parsedAddress.JoinHostPort(0))(&s.config)
-					}
-				}
-			case "token":
-				if args[1] != "" {
-					WithConsulToken(args[1])(&s.config)
-				}
-			case "timeout":
-				if args[1] != "" {
-					timeParse, err := strconv.Atoi(args[1])
-					if err == nil {
-						WithTimeout(time.Duration(timeParse) * time.Second)(&s.config)
-					}
-				}
-			case "prefix":
-				if args[1] != "" {
-					WithPrefix(args[1])(&s.config)
-				}
-			case "value_prefix":
-				if args[1] != "" {
-					WithValuePrefix(args[1])(&s.config)
-				}
-			case "aes_key":
-				if args[1] != "" {
-					WithAESKey(args[1])
-				}
-			case "tls_enabled":
-				if args[1] != "" {
-					tlsParse, err := strconv.ParseBool(args[1])
-					if err == nil {
-						WithConsulTls(tlsParse)(&s.config)
-					}
-				}
-			case "tls_insecure":
-				if args[1] != "" {
-					tlsInsecureParse, err := strconv.ParseBool(args[1])
-					if err == nil {
-						WithConsulTlsInsecure(tlsInsecureParse)
-					}
+
+		if len(args) == 0 {
+			continue
+		}
+
+		switch key {
+		case "address":
+			if args[0] != "" {
+				parsedAddress, err := caddy.ParseNetworkAddress(args[0])
+				if err == nil {
+					s.Address = parsedAddress.JoinHostPort(0)
 				}
 			}
-		} else {
-			continue
+		case "token":
+			if args[0] != "" {
+				s.Token = args[0]
+			}
+		case "timeout":
+			if args[0] != "" {
+				timeParse, err := strconv.Atoi(args[0])
+				if err == nil {
+					s.Timeout = timeParse
+				}
+			}
+		case "prefix":
+			if args[0] != "" {
+				s.Prefix = args[0]
+			}
+		case "value_prefix":
+			if args[0] != "" {
+				s.ValuePrefix = args[0]
+			}
+		case "aes_key":
+			if args[0] != "" {
+				s.AESKey = []byte(args[0])
+			}
+		case "tls_enabled":
+			if args[0] != "" {
+				tlsParse, err := strconv.ParseBool(args[0])
+				if err == nil {
+					s.TlsEnabled = tlsParse
+				}
+			}
+		case "tls_insecure":
+			if args[0] != "" {
+				tlsInsecureParse, err := strconv.ParseBool(args[0])
+				if err == nil {
+					s.TlsInsecure = tlsInsecureParse
+				}
+			}
 		}
 	}
 	return nil

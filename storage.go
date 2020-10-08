@@ -16,14 +16,28 @@ import (
 
 // Storage holds all parameters for the Consul connection
 type Storage struct {
+	certmagic.Storage
 	ConsulClient *consul.Client
-	config       Config
 	logger       *zap.SugaredLogger
 	locks        map[string]*consul.Lock
+
+	Address     string `json:"address"`
+	Token       string `json:"token"`
+	Timeout     int    `json:"timeout"`
+	Prefix      string `json:"prefix"`
+	ValuePrefix string `json:"value_prefix"`
+	AESKey      []byte `json:"aes_key"`
+	TlsEnabled  bool   `json:"tls_enabled"`
+	TlsInsecure bool   `json:"tls_insecure"`
 }
 
 // New connects to Consul and returns a Storage
 func New(opts ...Option) *Storage {
+	// create Storage and pre-set values
+	s := &Storage{
+		locks: make(map[string]*consul.Lock),
+	}
+
 	config := Config{
 		AESKey:            []byte(DefaultAESKey),
 		ValuePrefix:       DefaultValuePrefix,
@@ -51,18 +65,12 @@ func New(opts ...Option) *Storage {
 		opt(&config)
 	}
 
-	// create Storage and pre-set values
-	s := &Storage{
-		config: config,
-		locks:  make(map[string]*consul.Lock),
-	}
-
 	return s
 }
 
 // helper function to prefix key
 func (s *Storage) prefixKey(key string) string {
-	return path.Join(s.config.Prefix, key)
+	return path.Join(s.Prefix, key)
 }
 
 // Lock acquires a lock for the given key or blocks until it gets it
@@ -200,7 +208,7 @@ func (s Storage) List(prefix string, recursive bool) ([]string, error) {
 	// remove default prefix from keys
 	for _, key := range keys {
 		if strings.HasPrefix(key, s.prefixKey(prefix)) {
-			key = strings.TrimPrefix(key, s.config.Prefix+"/")
+			key = strings.TrimPrefix(key, s.Prefix+"/")
 			keysFound = append(keysFound, key)
 		}
 	}
@@ -250,21 +258,21 @@ func (s Storage) Stat(key string) (certmagic.KeyInfo, error) {
 func (s *Storage) createConsulClient() error {
 	// get the default config
 	consulCfg := consul.DefaultConfig()
-	if s.config.ConsulAddr != "" {
-		consulCfg.Address = s.config.ConsulAddr
+	if s.Address != "" {
+		consulCfg.Address = s.Address
 	}
-	if s.config.ConsulToken != "" {
-		consulCfg.Token = s.config.ConsulToken
+	if s.Token != "" {
+		consulCfg.Token = s.Token
 	}
-	if s.config.ConsulTls {
+	if s.TlsEnabled {
 		consulCfg.Scheme = "https"
 	}
-	consulCfg.TLSConfig.InsecureSkipVerify = s.config.ConsulTlsInsecure
+	consulCfg.TLSConfig.InsecureSkipVerify = s.TlsInsecure
 
 	// set a dial context to prevent default keepalive
 	consulCfg.Transport.DialContext = (&net.Dialer{
-		Timeout:   s.config.Timeout,
-		KeepAlive: s.config.Timeout,
+		Timeout:   time.Duration(s.Timeout) * time.Second,
+		KeepAlive: time.Duration(s.Timeout) * time.Second,
 	}).DialContext
 
 	// create the Consul API client
