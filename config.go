@@ -1,9 +1,5 @@
 package storageconsul
 
-import (
-	"time"
-)
-
 const (
 	// DefaultPrefix defines the default prefix in KV store
 	DefaultPrefix = "caddytls"
@@ -26,64 +22,3 @@ const (
 	// EnvValuePrefix defines the env variable name to override KV value prefix
 	EnvValuePrefix = "CADDY_CLUSTERING_CONSUL_VALUEPREFIX"
 )
-
-type Config struct {
-	ConsulAddr        string
-	AESKey            []byte
-	ValuePrefix       string
-	Prefix            string
-	ConsulToken       string
-	Timeout           time.Duration
-	ConsulTls         bool
-	ConsulTlsInsecure bool
-}
-
-type Option func(c *Config)
-
-func WithConsulAddr(consulAddr string) Option {
-	return func(c *Config) {
-		c.ConsulAddr = consulAddr
-	}
-}
-
-func WithAESKey(aesKey string) Option {
-	return func(c *Config) {
-		c.AESKey = []byte(aesKey)
-	}
-}
-
-func WithPrefix(prefix string) Option {
-	return func(c *Config) {
-		c.Prefix = prefix
-	}
-}
-
-func WithValuePrefix(valuePrefix string) Option {
-	return func(c *Config) {
-		c.ValuePrefix = valuePrefix
-	}
-}
-
-func WithConsulToken(consulToken string) Option {
-	return func(c *Config) {
-		c.ConsulToken = consulToken
-	}
-}
-
-func WithConsulTls(enable bool) Option {
-	return func(c *Config) {
-		c.ConsulTls = true
-	}
-}
-
-func WithConsulTlsInsecure(enable bool) Option {
-	return func(c *Config) {
-		c.ConsulTlsInsecure = enable
-	}
-}
-
-func WithTimeout(dur time.Duration) Option {
-	return func(c *Config) {
-		c.Timeout = dur
-	}
-}

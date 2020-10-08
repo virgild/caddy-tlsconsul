@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"os"
 	"path"
 	"strings"
 	"time"
@@ -32,40 +31,17 @@ type Storage struct {
 }
 
 // New connects to Consul and returns a Storage
-func New(opts ...Option) *Storage {
+func New() *Storage {
 	// create Storage and pre-set values
-	s := &Storage{
-		locks: make(map[string]*consul.Lock),
+	s := Storage{
+		locks:       make(map[string]*consul.Lock),
+		AESKey:      []byte(DefaultAESKey),
+		ValuePrefix: DefaultValuePrefix,
+		Prefix:      DefaultPrefix,
+		Timeout:     DefaultTimeout,
 	}
 
-	config := Config{
-		AESKey:            []byte(DefaultAESKey),
-		ValuePrefix:       DefaultValuePrefix,
-		Prefix:            DefaultPrefix,
-		Timeout:           DefaultTimeout,
-		ConsulTls:         false,
-		ConsulTlsInsecure: false,
-	}
-
-	// override default values from ENV
-	if aesKey := os.Getenv(EnvNameAESKey); aesKey != "" {
-		WithAESKey(aesKey)(&config)
-	}
-
-	if prefix := os.Getenv(EnvNamePrefix); prefix != "" {
-		WithPrefix(prefix)(&config)
-	}
-
-	if valueprefix := os.Getenv(EnvValuePrefix); valueprefix != "" {
-		WithValuePrefix(valueprefix)(&config)
-	}
-
-	// set from arguments
-	for _, opt := range opts {
-		opt(&config)
-	}
-
-	return s
+	return &s
 }
 
 // helper function to prefix key
