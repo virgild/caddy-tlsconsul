@@ -15,7 +15,7 @@ const (
 	DefaultValuePrefix = "caddy-storage-consul"
 
 	// DefaultTimeout is the default timeout for Consul connections
-	DefaultTimeout = 10 * time.Second
+	DefaultTimeout = 10
 
 	// EnvNameAESKey defines the env variable name to override AES key
 	EnvNameAESKey = "CADDY_CLUSTERING_CONSUL_AESKEY"
