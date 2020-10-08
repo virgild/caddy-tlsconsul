@@ -1,6 +1,7 @@
 package storageconsul
 
 import (
+	"os"
 	"strconv"
 
 	"github.com/caddyserver/caddy/v2"
@@ -25,6 +26,20 @@ func (Storage) CaddyModule() caddy.ModuleInfo {
 func (s *Storage) Provision(ctx caddy.Context) error {
 	s.logger = ctx.Logger(s).Sugar()
 	s.logger.Infof("TLS storage is using Consul at %s", s.Address)
+
+	// override default values from ENV
+	if aesKey := os.Getenv(EnvNameAESKey); aesKey != "" {
+		s.AESKey = []byte(aesKey)
+	}
+
+	if prefix := os.Getenv(EnvNamePrefix); prefix != "" {
+		s.Prefix = prefix
+	}
+
+	if valueprefix := os.Getenv(EnvValuePrefix); valueprefix != "" {
+		s.ValuePrefix = valueprefix
+	}
+
 	return s.createConsulClient()
 }
 
