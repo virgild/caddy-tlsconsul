@@ -17,7 +17,7 @@ var consulClient *consul.Client
 const TestPrefix = "consultlstest"
 
 // these tests needs a running Consul server
-func setupConsulEnv(t *testing.T) *Storage {
+func setupConsulEnv(t *testing.T) *ConsulStorage {
 
 	os.Setenv(EnvNamePrefix, TestPrefix)
 	os.Setenv(consul.HTTPTokenEnvName, "2f9e03f8-714b-5e4d-65ea-c983d6b172c4")
