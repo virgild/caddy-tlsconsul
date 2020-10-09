@@ -10,10 +10,10 @@ import (
 )
 
 func init() {
-	caddy.RegisterModule(Storage{})
+	caddy.RegisterModule(ConsulStorage{})
 }
 
-func (Storage) CaddyModule() caddy.ModuleInfo {
+func (ConsulStorage) CaddyModule() caddy.ModuleInfo {
 	return caddy.ModuleInfo{
 		ID: "caddy.storage.consul",
 		New: func() caddy.Module {
@@ -23,28 +23,28 @@ func (Storage) CaddyModule() caddy.ModuleInfo {
 }
 
 // Provision is called by Caddy to prepare the module
-func (s *Storage) Provision(ctx caddy.Context) error {
-	s.logger = ctx.Logger(s).Sugar()
-	s.logger.Infof("TLS storage is using Consul at %s", s.Address)
+func (cs *ConsulStorage) Provision(ctx caddy.Context) error {
+	cs.logger = ctx.Logger(cs).Sugar()
+	cs.logger.Infof("TLS storage is using Consul at %cs", cs.Address)
 
 	// override default values from ENV
 	if aesKey := os.Getenv(EnvNameAESKey); aesKey != "" {
-		s.AESKey = []byte(aesKey)
+		cs.AESKey = []byte(aesKey)
 	}
 
 	if prefix := os.Getenv(EnvNamePrefix); prefix != "" {
-		s.Prefix = prefix
+		cs.Prefix = prefix
 	}
 
 	if valueprefix := os.Getenv(EnvValuePrefix); valueprefix != "" {
-		s.ValuePrefix = valueprefix
+		cs.ValuePrefix = valueprefix
 	}
 
-	return s.createConsulClient()
+	return cs.createConsulClient()
 }
 
-func (s *Storage) CertMagicStorage() (certmagic.Storage, error) {
-	return s, nil
+func (cs *ConsulStorage) CertMagicStorage() (certmagic.Storage, error) {
+	return cs, nil
 }
 
 // UnmarshalCaddyfile parses plugin settings from Caddyfile
@@ -58,7 +58,7 @@ func (s *Storage) CertMagicStorage() (certmagic.Storage, error) {
 //     tls_enabled  "false"
 //     tls_insecure "true"
 // }
-func (s *Storage) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
+func (cs *ConsulStorage) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 	for d.Next() {
 		key := d.Val()
 		var value string
@@ -72,44 +72,44 @@ func (s *Storage) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 			if value != "" {
 				parsedAddress, err := caddy.ParseNetworkAddress(value)
 				if err == nil {
-					s.Address = parsedAddress.JoinHostPort(0)
+					cs.Address = parsedAddress.JoinHostPort(0)
 				}
 			}
 		case "token":
 			if value != "" {
-				s.Token = value
+				cs.Token = value
 			}
 		case "timeout":
 			if value != "" {
 				timeParse, err := strconv.Atoi(value)
 				if err == nil {
-					s.Timeout = timeParse
+					cs.Timeout = timeParse
 				}
 			}
 		case "prefix":
 			if value != "" {
-				s.Prefix = value
+				cs.Prefix = value
 			}
 		case "value_prefix":
 			if value != "" {
-				s.ValuePrefix = value
+				cs.ValuePrefix = value
 			}
 		case "aes_key":
 			if value != "" {
-				s.AESKey = []byte(value)
+				cs.AESKey = []byte(value)
 			}
 		case "tls_enabled":
 			if value != "" {
 				tlsParse, err := strconv.ParseBool(value)
 				if err == nil {
-					s.TlsEnabled = tlsParse
+					cs.TlsEnabled = tlsParse
 				}
 			}
 		case "tls_insecure":
 			if value != "" {
 				tlsInsecureParse, err := strconv.ParseBool(value)
 				if err == nil {
-					s.TlsInsecure = tlsInsecureParse
+					cs.TlsInsecure = tlsInsecureParse
 				}
 			}
 		}
