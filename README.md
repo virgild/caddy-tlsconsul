@@ -20,7 +20,7 @@ The version of this plugin in the master branch supports Caddy 2.0.0+ using Cert
 
 ### Caddy configuration
 
-ATTENTION: The name of the storage module in configurations has been changed to *consol* to alogn
+ATTENTION: The name of the storage module in configurations has been changed to *consol* to align
 with other storage modules.
 
 You need to specify `consul` as the storage module in Caddy's configuration. This can be done in the config file of using the [admin API](https://caddyserver.com/docs/api).
