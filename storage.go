@@ -21,7 +21,7 @@ type ConsulStorage struct {
 	certmagic.Storage
 	ConsulClient *consul.Client
 	logger       *zap.SugaredLogger
-	muLocks      sync.Mutex
+	muLocks      sync.RWMutex
 	locks        map[string]*consul.Lock
 
 	Address     string `json:"address"`
@@ -53,12 +53,8 @@ func (cs *ConsulStorage) prefixKey(key string) string {
 }
 
 // Lock acquires a distributed lock for the given key or blocks until it gets one
-func (cs ConsulStorage) Lock(ctx context.Context, key string) error {
-	cs.muLocks.Lock()
-	defer cs.muLocks.Unlock()
-
-	// if we already hold the lock, return early
-	if _, exists := cs.locks[key]; exists {
+func (cs *ConsulStorage) Lock(ctx context.Context, key string) error {
+	if cs.IsLocked(key) {
 		return nil
 	}
 
@@ -88,8 +84,20 @@ func (cs ConsulStorage) Lock(ctx context.Context, key string) error {
 	return nil
 }
 
+func (cs *ConsulStorage) IsLocked(key string) bool {
+	cs.muLocks.RLock()
+	defer cs.muLocks.RUnlock()
+
+	// if we already hold the lock, return early
+	if _, exists := cs.locks[key]; exists {
+		return true
+	}
+
+	return false
+}
+
 // Unlock releases a specific lock
-func (cs ConsulStorage) Unlock(key string) error {
+func (cs *ConsulStorage) Unlock(key string) error {
 	cs.muLocks.Lock()
 	defer cs.muLocks.Unlock()
 
