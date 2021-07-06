@@ -54,7 +54,7 @@ func (cs *ConsulStorage) prefixKey(key string) string {
 
 // Lock acquires a distributed lock for the given key or blocks until it gets one
 func (cs *ConsulStorage) Lock(ctx context.Context, key string) error {
-	if cs.IsLocked(key) {
+	if _, isLocked := cs.GetLock(key); isLocked {
 		return nil
 	}
 
@@ -84,16 +84,16 @@ func (cs *ConsulStorage) Lock(ctx context.Context, key string) error {
 	return nil
 }
 
-func (cs *ConsulStorage) IsLocked(key string) bool {
+func (cs *ConsulStorage) GetLock(key string) (*consul.Lock, bool) {
 	cs.muLocks.RLock()
 	defer cs.muLocks.RUnlock()
 
 	// if we already hold the lock, return early
-	if _, exists := cs.locks[key]; exists {
-		return true
+	if lock, exists := cs.locks[key]; exists {
+		return lock, true
 	}
 
-	return false
+	return nil, false
 }
 
 // Unlock releases a specific lock
@@ -102,7 +102,7 @@ func (cs *ConsulStorage) Unlock(key string) error {
 	defer cs.muLocks.Unlock()
 
 	// check if we own it and unlock
-	lock, exists := cs.locks[key]
+	lock, exists := cs.GetLock(key)
 	if !exists {
 		return errors.Errorf("lock %s not found", cs.prefixKey(key))
 	}
