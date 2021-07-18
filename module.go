@@ -25,7 +25,7 @@ func (ConsulStorage) CaddyModule() caddy.ModuleInfo {
 // Provision is called by Caddy to prepare the module
 func (cs *ConsulStorage) Provision(ctx caddy.Context) error {
 	cs.logger = ctx.Logger(cs).Sugar()
-	cs.logger.Infof("TLS storage is using Consul at %cs", cs.Address)
+	cs.logger.Infof("TLS storage is using Consul at %s", cs.Address)
 
 	// override default values from ENV
 	if aesKey := os.Getenv(EnvNameAESKey); aesKey != "" {

@@ -54,12 +54,19 @@ func (cs *ConsulStorage) prefixKey(key string) string {
 
 // Lock acquires a distributed lock for the given key or blocks until it gets one
 func (cs *ConsulStorage) Lock(ctx context.Context, key string) error {
+	cs.logger.Debugf("trying lock for %s", key)
+
 	if _, isLocked := cs.GetLock(key); isLocked {
 		return nil
 	}
 
-	// prepare the lock
-	lock, err := cs.ConsulClient.LockKey(cs.prefixKey(key))
+	// prepare the distributed lock
+	cs.logger.Debugf("creating Consul lock for %s", key)
+	lock, err := cs.ConsulClient.LockOpts(&consul.LockOptions{
+		Key:          cs.prefixKey(key),
+		LockWaitTime: time.Duration(cs.Timeout) * time.Second,
+		LockTryOnce:  true,
+	})
 	if err != nil {
 		return errors.Wrapf(err, "could not create lock for %s", cs.prefixKey(key))
 	}
@@ -142,6 +149,8 @@ func (cs ConsulStorage) Store(key string, value []byte) error {
 
 // Load retrieves the value for a key from Consul KV
 func (cs ConsulStorage) Load(key string) ([]byte, error) {
+	cs.logger.Debugf("loading data from Consul for %s", key)
+
 	kv, _, err := cs.ConsulClient.KV().Get(cs.prefixKey(key), &consul.QueryOptions{RequireConsistent: true})
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to obtain data for %s", cs.prefixKey(key))
@@ -159,6 +168,8 @@ func (cs ConsulStorage) Load(key string) ([]byte, error) {
 
 // Delete a key from Consul KV
 func (cs ConsulStorage) Delete(key string) error {
+	cs.logger.Debugf("deleting key %s from Consul", key)
+
 	// first obtain existing keypair
 	kv, _, err := cs.ConsulClient.KV().Get(cs.prefixKey(key), &consul.QueryOptions{RequireConsistent: true})
 	if err != nil {
