@@ -54,7 +54,7 @@ func (cs *ConsulStorage) prefixKey(key string) string {
 
 // Lock acquires a distributed lock for the given key or blocks until it gets one
 func (cs *ConsulStorage) Lock(ctx context.Context, key string) error {
-	cs.logger.Infof("trying lock for %s", key)
+	cs.logger.Debugf("trying lock for %s", key)
 
 	if _, isLocked := cs.GetLock(key); isLocked {
 		return nil
@@ -149,7 +149,7 @@ func (cs ConsulStorage) Store(key string, value []byte) error {
 
 // Load retrieves the value for a key from Consul KV
 func (cs ConsulStorage) Load(key string) ([]byte, error) {
-	cs.logger.Infof("loading data from Consul for %s", key)
+	cs.logger.Debugf("loading data from Consul for %s", key)
 
 	kv, _, err := cs.ConsulClient.KV().Get(cs.prefixKey(key), &consul.QueryOptions{RequireConsistent: true})
 	if err != nil {
