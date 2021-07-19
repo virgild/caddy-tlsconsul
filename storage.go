@@ -54,14 +54,14 @@ func (cs *ConsulStorage) prefixKey(key string) string {
 
 // Lock acquires a distributed lock for the given key or blocks until it gets one
 func (cs *ConsulStorage) Lock(ctx context.Context, key string) error {
-	cs.logger.Debugf("trying lock for %s", key)
+	cs.logger.Infof("trying lock for %s", key)
 
 	if _, isLocked := cs.GetLock(key); isLocked {
 		return nil
 	}
 
 	// prepare the distributed lock
-	cs.logger.Debugf("creating Consul lock for %s", key)
+	cs.logger.Infof("creating Consul lock for %s", key)
 	lock, err := cs.ConsulClient.LockOpts(&consul.LockOptions{
 		Key:          cs.prefixKey(key),
 		LockWaitTime: time.Duration(cs.Timeout) * time.Second,
@@ -105,9 +105,6 @@ func (cs *ConsulStorage) GetLock(key string) (*consul.Lock, bool) {
 
 // Unlock releases a specific lock
 func (cs *ConsulStorage) Unlock(key string) error {
-	cs.muLocks.Lock()
-	defer cs.muLocks.Unlock()
-
 	// check if we own it and unlock
 	lock, exists := cs.GetLock(key)
 	if !exists {
@@ -119,7 +116,10 @@ func (cs *ConsulStorage) Unlock(key string) error {
 		return errors.Wrapf(err, "unable to unlock %s", cs.prefixKey(key))
 	}
 
+	cs.muLocks.Lock()
 	delete(cs.locks, key)
+	cs.muLocks.Unlock()
+
 	return nil
 }
 
@@ -149,7 +149,7 @@ func (cs ConsulStorage) Store(key string, value []byte) error {
 
 // Load retrieves the value for a key from Consul KV
 func (cs ConsulStorage) Load(key string) ([]byte, error) {
-	cs.logger.Debugf("loading data from Consul for %s", key)
+	cs.logger.Infof("loading data from Consul for %s", key)
 
 	kv, _, err := cs.ConsulClient.KV().Get(cs.prefixKey(key), &consul.QueryOptions{RequireConsistent: true})
 	if err != nil {
@@ -168,7 +168,7 @@ func (cs ConsulStorage) Load(key string) ([]byte, error) {
 
 // Delete a key from Consul KV
 func (cs ConsulStorage) Delete(key string) error {
-	cs.logger.Debugf("deleting key %s from Consul", key)
+	cs.logger.Infof("deleting key %s from Consul", key)
 
 	// first obtain existing keypair
 	kv, _, err := cs.ConsulClient.KV().Get(cs.prefixKey(key), &consul.QueryOptions{RequireConsistent: true})
