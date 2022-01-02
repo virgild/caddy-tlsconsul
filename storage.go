@@ -21,7 +21,7 @@ type ConsulStorage struct {
 	certmagic.Storage
 	ConsulClient *consul.Client
 	logger       *zap.SugaredLogger
-	muLocks      sync.RWMutex
+	muLocks      *sync.RWMutex
 	locks        map[string]*consul.Lock
 
 	Address     string `json:"address"`
@@ -43,6 +43,7 @@ func New() *ConsulStorage {
 		ValuePrefix: DefaultValuePrefix,
 		Prefix:      DefaultPrefix,
 		Timeout:     DefaultTimeout,
+		muLocks:     &sync.RWMutex{},
 	}
 
 	return &s
