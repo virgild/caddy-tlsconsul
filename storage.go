@@ -154,8 +154,10 @@ func (cs ConsulStorage) Load(key string) ([]byte, error) {
 
 	kv, _, err := cs.ConsulClient.KV().Get(cs.prefixKey(key), &consul.QueryOptions{RequireConsistent: true})
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to obtain data for %s", cs.prefixKey(key))
-	} else if kv == nil {
+		return nil, certmagic.ErrNotExist(errors.Wrapf(err, "unable to obtain data for %s", cs.prefixKey(key)))
+	}
+
+	if kv == nil {
 		return nil, certmagic.ErrNotExist(errors.Errorf("key %s does not exist", cs.prefixKey(key)))
 	}
 
@@ -174,8 +176,10 @@ func (cs ConsulStorage) Delete(key string) error {
 	// first obtain existing keypair
 	kv, _, err := cs.ConsulClient.KV().Get(cs.prefixKey(key), &consul.QueryOptions{RequireConsistent: true})
 	if err != nil {
-		return errors.Wrapf(err, "unable to obtain data for %s", cs.prefixKey(key))
-	} else if kv == nil {
+		return certmagic.ErrNotExist(errors.Wrapf(err, "unable to obtain data for %s", cs.prefixKey(key)))
+	}
+
+	if kv == nil {
 		return certmagic.ErrNotExist(err)
 	}
 
@@ -205,7 +209,7 @@ func (cs ConsulStorage) List(prefix string, recursive bool) ([]string, error) {
 	// get a list of all keys at prefix
 	keys, _, err := cs.ConsulClient.KV().Keys(cs.prefixKey(prefix), "", &consul.QueryOptions{RequireConsistent: true})
 	if err != nil {
-		return keysFound, err
+		return keysFound, certmagic.ErrNotExist(errors.Wrapf(err, "no keys at %s", prefix))
 	}
 
 	if len(keys) == 0 {
@@ -245,7 +249,8 @@ func (cs ConsulStorage) Stat(key string) (certmagic.KeyInfo, error) {
 	kv, _, err := cs.ConsulClient.KV().Get(cs.prefixKey(key), &consul.QueryOptions{RequireConsistent: true})
 	if err != nil {
 		return certmagic.KeyInfo{}, errors.Errorf("unable to obtain data for %s", cs.prefixKey(key))
-	} else if kv == nil {
+	}
+	if kv == nil {
 		return certmagic.KeyInfo{}, certmagic.ErrNotExist(errors.Errorf("key %s does not exist", cs.prefixKey(key)))
 	}
 
@@ -287,6 +292,7 @@ func (cs *ConsulStorage) createConsulClient() error {
 	if err != nil {
 		return errors.Wrap(err, "unable to create Consul client")
 	}
+
 	if _, err := consulClient.Agent().NodeName(); err != nil {
 		return errors.Wrap(err, "unable to ping Consul")
 	}
