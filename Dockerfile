@@ -1,4 +1,4 @@
-FROM golang:1.15 AS builder
+FROM golang:1.17 AS builder
 
 WORKDIR /workspace
 RUN echo 'package main\n\
@@ -11,7 +11,7 @@ func main() {\n\
 caddycmd.Main()\n\
 }' > main.go && \
           go env -w GOPROXY="https://goproxy.io,direct" && \
-          go mod init caddy && go get github.com/caddyserver/caddy/v2@v2.2.0 && go get && \
+          go mod init caddy && go get github.com/caddyserver/caddy/v2@v2.4.6 && go get && \
           CGO_ENABLED=0 go build -trimpath -tags netgo -ldflags '-extldflags "-static" -s -w' -o /usr/bin/caddy
 
 
