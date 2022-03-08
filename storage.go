@@ -209,7 +209,7 @@ func (cs ConsulStorage) List(prefix string, recursive bool) ([]string, error) {
 	// get a list of all keys at prefix
 	keys, _, err := cs.ConsulClient.KV().Keys(cs.prefixKey(prefix), "", &consul.QueryOptions{RequireConsistent: true})
 	if err != nil {
-		return keysFound, fs.ErrNotExist
+		return keysFound, err
 	}
 
 	if len(keys) == 0 {
