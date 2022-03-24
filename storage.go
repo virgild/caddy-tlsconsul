@@ -105,7 +105,7 @@ func (cs *ConsulStorage) GetLock(key string) (*consul.Lock, bool) {
 }
 
 // Unlock releases a specific lock
-func (cs *ConsulStorage) Unlock(key string) error {
+func (cs *ConsulStorage) Unlock(_ context.Context, key string) error {
 	// check if we own it and unlock
 	lock, exists := cs.GetLock(key)
 	if !exists {
@@ -125,7 +125,7 @@ func (cs *ConsulStorage) Unlock(key string) error {
 }
 
 // Store saves encrypted data value for a key in Consul KV
-func (cs ConsulStorage) Store(key string, value []byte) error {
+func (cs ConsulStorage) Store(_ context.Context, key string, value []byte) error {
 	kv := &consul.KVPair{Key: cs.prefixKey(key)}
 
 	// prepare the stored data
@@ -149,16 +149,16 @@ func (cs ConsulStorage) Store(key string, value []byte) error {
 }
 
 // Load retrieves the value for a key from Consul KV
-func (cs ConsulStorage) Load(key string) ([]byte, error) {
+func (cs ConsulStorage) Load(_ context.Context, key string) ([]byte, error) {
 	cs.logger.Debugf("loading data from Consul for %s", key)
 
 	kv, _, err := cs.ConsulClient.KV().Get(cs.prefixKey(key), &consul.QueryOptions{RequireConsistent: true})
 	if err != nil {
-		return nil, certmagic.ErrNotExist(errors.Wrapf(err, "unable to obtain data for %s", cs.prefixKey(key)))
+		return nil, err
 	}
 
 	if kv == nil {
-		return nil, certmagic.ErrNotExist(errors.Errorf("key %s does not exist", cs.prefixKey(key)))
+		return nil, fs.ErrNotExist
 	}
 
 	contents, err := cs.DecryptStorageData(kv.Value)
@@ -170,17 +170,17 @@ func (cs ConsulStorage) Load(key string) ([]byte, error) {
 }
 
 // Delete a key from Consul KV
-func (cs ConsulStorage) Delete(key string) error {
+func (cs ConsulStorage) Delete(_ context.Context, key string) error {
 	cs.logger.Infof("deleting key %s from Consul", key)
 
 	// first obtain existing keypair
 	kv, _, err := cs.ConsulClient.KV().Get(cs.prefixKey(key), &consul.QueryOptions{RequireConsistent: true})
 	if err != nil {
-		return certmagic.ErrNotExist(errors.Wrapf(err, "unable to obtain data for %s", cs.prefixKey(key)))
+		return err
 	}
 
 	if kv == nil {
-		return certmagic.ErrNotExist(err)
+		return fs.ErrNotExist
 	}
 
 	// no do a Check-And-Set operation to verify we really deleted the key
@@ -194,7 +194,7 @@ func (cs ConsulStorage) Delete(key string) error {
 }
 
 // Exists checks if a key exists
-func (cs ConsulStorage) Exists(key string) bool {
+func (cs ConsulStorage) Exists(_ context.Context, key string) bool {
 	kv, _, err := cs.ConsulClient.KV().Get(cs.prefixKey(key), &consul.QueryOptions{RequireConsistent: true})
 	if kv != nil && err == nil {
 		return true
@@ -209,11 +209,11 @@ func (cs ConsulStorage) List(prefix string, recursive bool) ([]string, error) {
 	// get a list of all keys at prefix
 	keys, _, err := cs.ConsulClient.KV().Keys(cs.prefixKey(prefix), "", &consul.QueryOptions{RequireConsistent: true})
 	if err != nil {
-		return keysFound, certmagic.ErrNotExist(errors.Wrapf(err, "no keys at %s", prefix))
+		return keysFound, err
 	}
 
 	if len(keys) == 0 {
-		return keysFound, certmagic.ErrNotExist(errors.Errorf("no keys at %s", prefix))
+		return keysFound, fs.ErrNotExist
 	}
 
 	// remove default prefix from keys
@@ -245,13 +245,13 @@ func (cs ConsulStorage) List(prefix string, recursive bool) ([]string, error) {
 }
 
 // Stat returns statistic data of a key
-func (cs ConsulStorage) Stat(key string) (certmagic.KeyInfo, error) {
+func (cs ConsulStorage) Stat(_ context.Context, key string) (certmagic.KeyInfo, error) {
 	kv, _, err := cs.ConsulClient.KV().Get(cs.prefixKey(key), &consul.QueryOptions{RequireConsistent: true})
 	if err != nil {
 		return certmagic.KeyInfo{}, errors.Errorf("unable to obtain data for %s", cs.prefixKey(key))
 	}
 	if kv == nil {
-		return certmagic.KeyInfo{}, certmagic.ErrNotExist(errors.Errorf("key %s does not exist", cs.prefixKey(key)))
+		return certmagic.KeyInfo{}, fs.ErrNotExist
 	}
 
 	contents, err := cs.DecryptStorageData(kv.Value)
