@@ -2,6 +2,8 @@ package storageconsul
 
 import (
 	"context"
+	"fmt"
+	"io/fs"
 	"net"
 	"path"
 	"strings"
@@ -81,7 +83,10 @@ func (cs *ConsulStorage) Lock(ctx context.Context, key string) error {
 	// auto-unlock and clean list of locks in case of lost
 	go func() {
 		<-lockActive
-		cs.Unlock(key)
+		err := cs.Unlock(ctx, key)
+		if err != nil {
+			cs.logger.Errorf("failed to release lock: %s", err)
+		}
 	}()
 
 	// save the lock
@@ -125,7 +130,7 @@ func (cs *ConsulStorage) Unlock(_ context.Context, key string) error {
 }
 
 // Store saves encrypted data value for a key in Consul KV
-func (cs ConsulStorage) Store(_ context.Context, key string, value []byte) error {
+func (cs ConsulStorage) Store(ctx context.Context, key string, value []byte) error {
 	kv := &consul.KVPair{Key: cs.prefixKey(key)}
 
 	// prepare the stored data
@@ -141,7 +146,8 @@ func (cs ConsulStorage) Store(_ context.Context, key string, value []byte) error
 
 	kv.Value = encryptedValue
 
-	if _, err = cs.ConsulClient.KV().Put(kv, nil); err != nil {
+	opts := consul.WriteOptions{}
+	if _, err = cs.ConsulClient.KV().Put(kv, opts.WithContext(ctx)); err != nil {
 		return errors.Wrapf(err, "unable to store data for %s", cs.prefixKey(key))
 	}
 
@@ -149,10 +155,10 @@ func (cs ConsulStorage) Store(_ context.Context, key string, value []byte) error
 }
 
 // Load retrieves the value for a key from Consul KV
-func (cs ConsulStorage) Load(_ context.Context, key string) ([]byte, error) {
+func (cs ConsulStorage) Load(ctx context.Context, key string) ([]byte, error) {
 	cs.logger.Debugf("loading data from Consul for %s", key)
 
-	kv, _, err := cs.ConsulClient.KV().Get(cs.prefixKey(key), &consul.QueryOptions{RequireConsistent: true})
+	kv, _, err := cs.ConsulClient.KV().Get(cs.prefixKey(key), ConsulQueryDefaults(ctx))
 	if err != nil {
 		return nil, err
 	}
@@ -170,20 +176,20 @@ func (cs ConsulStorage) Load(_ context.Context, key string) ([]byte, error) {
 }
 
 // Delete a key from Consul KV
-func (cs ConsulStorage) Delete(_ context.Context, key string) error {
+func (cs ConsulStorage) Delete(ctx context.Context, key string) error {
 	cs.logger.Infof("deleting key %s from Consul", key)
 
 	// first obtain existing keypair
-	kv, _, err := cs.ConsulClient.KV().Get(cs.prefixKey(key), &consul.QueryOptions{RequireConsistent: true})
+	kv, _, err := cs.ConsulClient.KV().Get(cs.prefixKey(key), ConsulQueryDefaults(ctx))
 	if err != nil {
-		return err
+		return fmt.Errorf("%s: %w", err, fs.ErrNotExist)
 	}
 
 	if kv == nil {
 		return fs.ErrNotExist
 	}
 
-	// no do a Check-And-Set operation to verify we really deleted the key
+	// now do a Check-And-Set operation to verify we really deleted the key
 	if success, _, err := cs.ConsulClient.KV().DeleteCAS(kv, nil); err != nil {
 		return errors.Wrapf(err, "unable to delete data for %s", cs.prefixKey(key))
 	} else if !success {
@@ -194,8 +200,8 @@ func (cs ConsulStorage) Delete(_ context.Context, key string) error {
 }
 
 // Exists checks if a key exists
-func (cs ConsulStorage) Exists(_ context.Context, key string) bool {
-	kv, _, err := cs.ConsulClient.KV().Get(cs.prefixKey(key), &consul.QueryOptions{RequireConsistent: true})
+func (cs ConsulStorage) Exists(ctx context.Context, key string) bool {
+	kv, _, err := cs.ConsulClient.KV().Get(cs.prefixKey(key), ConsulQueryDefaults(ctx))
 	if kv != nil && err == nil {
 		return true
 	}
@@ -203,11 +209,11 @@ func (cs ConsulStorage) Exists(_ context.Context, key string) bool {
 }
 
 // List returns a list with all keys under a given prefix
-func (cs ConsulStorage) List(prefix string, recursive bool) ([]string, error) {
+func (cs ConsulStorage) List(ctx context.Context, prefix string, recursive bool) ([]string, error) {
 	var keysFound []string
 
 	// get a list of all keys at prefix
-	keys, _, err := cs.ConsulClient.KV().Keys(cs.prefixKey(prefix), "", &consul.QueryOptions{RequireConsistent: true})
+	keys, _, err := cs.ConsulClient.KV().Keys(cs.prefixKey(prefix), "", ConsulQueryDefaults(ctx))
 	if err != nil {
 		return keysFound, err
 	}
@@ -245,10 +251,10 @@ func (cs ConsulStorage) List(prefix string, recursive bool) ([]string, error) {
 }
 
 // Stat returns statistic data of a key
-func (cs ConsulStorage) Stat(_ context.Context, key string) (certmagic.KeyInfo, error) {
-	kv, _, err := cs.ConsulClient.KV().Get(cs.prefixKey(key), &consul.QueryOptions{RequireConsistent: true})
+func (cs ConsulStorage) Stat(ctx context.Context, key string) (certmagic.KeyInfo, error) {
+	kv, _, err := cs.ConsulClient.KV().Get(cs.prefixKey(key), ConsulQueryDefaults(ctx))
 	if err != nil {
-		return certmagic.KeyInfo{}, errors.Errorf("unable to obtain data for %s", cs.prefixKey(key))
+		return certmagic.KeyInfo{}, fmt.Errorf("unable to obtain data for %s: %w", cs.prefixKey(key), fs.ErrNotExist)
 	}
 	if kv == nil {
 		return certmagic.KeyInfo{}, fs.ErrNotExist
@@ -299,4 +305,12 @@ func (cs *ConsulStorage) createConsulClient() error {
 
 	cs.ConsulClient = consulClient
 	return nil
+}
+
+func ConsulQueryDefaults(ctx context.Context) *consul.QueryOptions {
+	opts := &consul.QueryOptions{
+		UseCache:          true,
+		RequireConsistent: true,
+	}
+	return opts.WithContext(ctx)
 }
